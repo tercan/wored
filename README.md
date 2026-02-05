@@ -2,6 +2,8 @@
 
 A minimal music player for macOS built with SwiftUI.
 
+![Wored Screenshot](assets/wored-screen.png)
+
 ## Features
 
 - Minimal, compact player interface
