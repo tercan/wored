@@ -1,6 +1,0 @@
-- Kodlarda yapılan her değişiklik, CHANGELOG.md dosyasına tarih-saat bilgileri ile kaydedilsin.
-- Yapılan değişiklikler ve geliştirmelere göre README.md dosyası güncellensin.
-- Önemli özellikler eklendiğinde versiyon numarası güncellensin.
-- Tüm yorum satırları İngilizce yazılsın.
-- Türkçe metinler her zaman tam Türkçe yazılsın, Türkçe karakterler kullanılsın.
-- Hiçbir yerde emoji kullanılmasın.
