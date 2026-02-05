@@ -7,7 +7,7 @@ A minimal music player for macOS built with SwiftUI.
 ## Features
 
 - Minimal, compact player interface
-- Separate playlist window (movable, independent)
+- Docked playlist window (fixed width, resizable height)
 - Album art display
 - Metadata reading (title, artist, artwork)
 - Drag and drop playlist reordering
@@ -27,11 +27,11 @@ A minimal music player for macOS built with SwiftUI.
 
 ## Usage
 
-- Click the playlist icon to open playlist window
+- Click the playlist icon to toggle playlist window
 - Double-click a song to play
 - Drag songs to reorder playlist
 - Use playback controls to navigate
 
 ## Version
 
-0.1.0
+0.1.1

@@ -58,7 +58,6 @@ extension NSColor {
 class WindowManager: ObservableObject {
     static let shared = WindowManager()
     
-    @Published var isPinned = false
     @Published var isPlaylistVisible = false
     weak var playerWindow: NSWindow?
     weak var playlistWindow: NSWindow?
@@ -69,12 +68,41 @@ class WindowManager: ObservableObject {
     private var playlistKeyObserver: NSObjectProtocol?
     private var playerMainObserver: NSObjectProtocol?
     private var playlistMainObserver: NSObjectProtocol?
-    private var pendingPin = false
+    private var playlistResizeObserver: NSObjectProtocol?
     private var isForegroundSyncing = false
     private var didAlignPlaylistOnce = false
+    private var isSyncingFrame = false
+    private var pendingShowPlaylist = false
+    private let playlistHeightKey = "wored.playlistHeight"
+    private let playlistVisibleKey = "wored.playlistVisible"
+    private var appActiveObserver: NSObjectProtocol?
+    private var appTerminateObserver: NSObjectProtocol?
+    private var isAppTerminating = false
+    
+    private init() {
+        pendingShowPlaylist = UserDefaults.standard.bool(forKey: playlistVisibleKey)
+        appActiveObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.bringWindowsToFrontIfNeeded()
+        }
+        appTerminateObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.willTerminateNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.isAppTerminating = true
+            if let visible = self?.isPlaylistVisible, let key = self?.playlistVisibleKey {
+                UserDefaults.standard.set(visible, forKey: key)
+            }
+        }
+    }
     
     func registerPlayerWindow(_ window: NSWindow) {
         playerWindow = window
+        enforcePlaylistWidth()
         
         // Observe player window movement
         playerObserver = NotificationCenter.default.addObserver(
@@ -82,7 +110,7 @@ class WindowManager: ObservableObject {
             object: window,
             queue: .main
         ) { [weak self] _ in
-            self?.movePlaylistIfPinned()
+            self?.syncPlaylistFrameToPlayer()
         }
         
         playerKeyObserver = NotificationCenter.default.addObserver(
@@ -112,7 +140,15 @@ class WindowManager: ObservableObject {
             object: window,
             queue: .main
         ) { [weak self] _ in
-            self?.checkPinStatus()
+            self?.syncPlaylistFrameToPlayer()
+        }
+
+        playlistResizeObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.didResizeNotification,
+            object: window,
+            queue: .main
+        ) { [weak self] _ in
+            self?.handlePlaylistResize()
         }
         
         playlistKeyObserver = NotificationCenter.default.addObserver(
@@ -136,46 +172,39 @@ class WindowManager: ObservableObject {
             object: window,
             queue: .main
         ) { [weak self] _ in
-            self?.isPinned = false
             self?.isPlaylistVisible = false
+            self?.detachPlaylistFromPlayer()
             self?.playlistWindow = nil
-        }
-        
-        if pendingPin {
-            pinPlaylist()
-            pendingPin = false
+            guard self?.isAppTerminating != true else { return }
+            if let key = self?.playlistVisibleKey {
+                UserDefaults.standard.set(false, forKey: key)
+            }
         }
 
-        if !didAlignPlaylistOnce {
+        if pendingShowPlaylist {
+            showPlaylist()
+            pendingShowPlaylist = false
+        } else if !didAlignPlaylistOnce {
             alignPlaylistBelowPlayer()
             didAlignPlaylistOnce = true
+            window.orderOut(nil)
+            isPlaylistVisible = false
         }
     }
     
-    private func checkPinStatus() {
-        guard isPinned, let player = playerWindow, let playlist = playlistWindow else { return }
+    private func syncPlaylistFrameToPlayer() {
+        guard let player = playerWindow, let playlist = playlistWindow, playlist.isVisible else { return }
+        guard !isSyncingFrame else { return }
+        isSyncingFrame = true
+        defer { isSyncingFrame = false }
         
-        let playerFrame = player.frame
-        let playlistFrame = playlist.frame
-        
-        // Check if playlist is aligned to player's right edge
-        let tolerance: CGFloat = 5
-        let isAlignedTop = abs(playlistFrame.maxY - playerFrame.maxY) < tolerance
-        let isAlignedRight = abs(playlistFrame.minX - playerFrame.maxX) < tolerance
-        
-        if !isAlignedTop || !isAlignedRight {
-            isPinned = false
-        }
-    }
-    
-    private func movePlaylistIfPinned() {
-        guard isPinned, let player = playerWindow, let playlist = playlistWindow else { return }
-        
-        // Move playlist to stay pinned to player's right
-        var newOrigin = playlist.frame.origin
-        newOrigin.x = player.frame.maxX
-        newOrigin.y = player.frame.maxY - playlist.frame.height
-        playlist.setFrameOrigin(newOrigin)
+        let height = playlist.frame.height
+        var newFrame = playlist.frame
+        newFrame.size.width = player.frame.width
+        newFrame.origin.x = player.frame.minX
+        newFrame.origin.y = player.frame.minY - height
+        playlist.setFrame(newFrame, display: true)
+        enforcePlaylistWidth()
     }
     
     private func bringToFront(_ window: NSWindow) {
@@ -189,11 +218,54 @@ class WindowManager: ObservableObject {
     private func alignPlaylistBelowPlayer() {
         guard let player = playerWindow, let playlist = playlistWindow else { return }
         let playerFrame = player.frame
+        let storedHeight = CGFloat(UserDefaults.standard.double(forKey: playlistHeightKey))
+        let targetHeight = storedHeight > 0 ? storedHeight : playlist.frame.height
+        
         var playlistFrame = playlist.frame
         playlistFrame.size.width = playerFrame.width
+        playlistFrame.size.height = targetHeight
         playlistFrame.origin.x = playerFrame.minX
-        playlistFrame.origin.y = playerFrame.minY - playlistFrame.height
+        playlistFrame.origin.y = playerFrame.minY - targetHeight
         playlist.setFrame(playlistFrame, display: true)
+        enforcePlaylistWidth()
+    }
+    
+    private func handlePlaylistResize() {
+        guard let playlist = playlistWindow, let player = playerWindow else { return }
+        guard !isSyncingFrame else { return }
+        isSyncingFrame = true
+        defer { isSyncingFrame = false }
+        
+        let height = playlist.frame.height
+        UserDefaults.standard.set(Double(height), forKey: playlistHeightKey)
+        
+        var frame = playlist.frame
+        frame.size.width = player.frame.width
+        frame.origin.x = player.frame.minX
+        frame.origin.y = player.frame.minY - height
+        playlist.setFrame(frame, display: true)
+        enforcePlaylistWidth()
+    }
+
+    private func enforcePlaylistWidth() {
+        guard let player = playerWindow, let playlist = playlistWindow else { return }
+        let width = player.frame.width
+        playlist.minSize.width = width
+        playlist.maxSize.width = width
+    }
+
+    private func attachPlaylistToPlayer() {
+        guard let player = playerWindow, let playlist = playlistWindow else { return }
+        if playlist.parent != player {
+            player.addChildWindow(playlist, ordered: .below)
+        }
+    }
+
+    private func detachPlaylistFromPlayer() {
+        guard let player = playerWindow, let playlist = playlistWindow else { return }
+        if playlist.parent == player {
+            player.removeChildWindow(playlist)
+        }
     }
     
     private func syncForeground(from source: NSWindow) {
@@ -207,30 +279,32 @@ class WindowManager: ObservableObject {
         } else if source === playlist {
             bringToFront(player)
         }
+        attachPlaylistToPlayer()
     }
-    
-    func pinPlaylist() {
-        guard let player = playerWindow, let playlist = playlistWindow else { return }
-        
-        // Position playlist to right of player
-        var newOrigin = playlist.frame.origin
-        newOrigin.x = player.frame.maxX
-        newOrigin.y = player.frame.maxY - playlist.frame.height
-        playlist.setFrameOrigin(newOrigin)
-        isPinned = true
+
+    private func bringWindowsToFrontIfNeeded() {
+        guard let player = playerWindow else { return }
+        bringToFront(player)
+        if let playlist = playlistWindow, playlist.isVisible {
+            bringToFront(playlist)
+        }
     }
     
     func showPlaylist() {
         guard let playlist = playlistWindow else { return }
+        alignPlaylistBelowPlayer()
+        attachPlaylistToPlayer()
         playlist.makeKeyAndOrderFront(nil)
         isPlaylistVisible = true
+        UserDefaults.standard.set(true, forKey: playlistVisibleKey)
     }
     
     func hidePlaylist() {
         guard let playlist = playlistWindow else { return }
+        detachPlaylistFromPlayer()
         playlist.orderOut(nil)
         isPlaylistVisible = false
-        isPinned = false
+        UserDefaults.standard.set(false, forKey: playlistVisibleKey)
     }
     
     func togglePlaylist(openWindow: () -> Void) {
@@ -241,26 +315,23 @@ class WindowManager: ObservableObject {
                 showPlaylist()
             }
         } else {
+            pendingShowPlaylist = true
             openWindow()
         }
     }
-    
-    func togglePin(openWindow: () -> Void) {
-        if isPinned {
-            isPinned = false
-            return
-        }
-        
+
+    func restorePlaylistIfNeeded(openWindow: () -> Void) {
+        guard UserDefaults.standard.bool(forKey: playlistVisibleKey) else { return }
         if let playlist = playlistWindow {
             if !playlist.isVisible {
                 showPlaylist()
             }
-            pinPlaylist()
         } else {
-            pendingPin = true
+            pendingShowPlaylist = true
             openWindow()
         }
     }
+    
 }
 
 @main
@@ -336,7 +407,8 @@ struct PlaylistWindowAccessor: NSViewRepresentable {
                 window.styleMask = [.borderless, .resizable, .miniaturizable]
                 window.titlebarAppearsTransparent = true
                 window.titleVisibility = .hidden
-                window.isMovableByWindowBackground = true
+                window.isMovableByWindowBackground = false
+                window.isMovable = false
                 window.backgroundColor = .appBackground
                 window.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
                 

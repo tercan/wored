@@ -92,6 +92,8 @@ class AudioPlayerViewModel: NSObject, ObservableObject {
     private var suppressAutoAdvanceUntil: Date?
     private let volumeKey = "wored.volume"
     private let muteKey = "wored.mute"
+    private let shuffleKey = "wored.shuffle"
+    private let repeatKey = "wored.repeat"
     private let playlistVersion = 1
     
     // Playlist Data
@@ -119,8 +121,16 @@ class AudioPlayerViewModel: NSObject, ObservableObject {
             updateOutputVolume()
         }
     }
-    @Published var isShuffled: Bool = false
-    @Published var repeatMode: RepeatMode = .none
+    @Published var isShuffled: Bool = false {
+        didSet {
+            UserDefaults.standard.set(isShuffled, forKey: shuffleKey)
+        }
+    }
+    @Published var repeatMode: RepeatMode = .none {
+        didSet {
+            UserDefaults.standard.set(repeatMode.rawValue, forKey: repeatKey)
+        }
+    }
     
     // File path for saving playlist
     private var playlistURL: URL {
@@ -198,6 +208,11 @@ class AudioPlayerViewModel: NSObject, ObservableObject {
         let storedVolume = UserDefaults.standard.object(forKey: volumeKey) as? Double
         volume = Float(storedVolume ?? 0.8)
         isMuted = UserDefaults.standard.bool(forKey: muteKey)
+        isShuffled = UserDefaults.standard.bool(forKey: shuffleKey)
+        if let raw = UserDefaults.standard.string(forKey: repeatKey),
+           let mode = RepeatMode(rawValue: raw) {
+            repeatMode = mode
+        }
     }
     
     private func reportError(_ message: String) {

@@ -9,6 +9,7 @@ struct PlayerView: View {
     @Environment(\.openWindow) private var openWindow
     @State private var showInfo = false
     @State private var wasPlayingBeforeSeek = false
+    @State private var didRestorePlaylist = false
     
     private var repeatIcon: String {
         viewModel.repeatMode == .one ? "repeat.1" : "repeat"
@@ -209,6 +210,11 @@ struct PlayerView: View {
         .padding(8)
         .background(Color.appBackground)
         .frame(width: 300)
+        .onAppear {
+            guard !didRestorePlaylist else { return }
+            didRestorePlaylist = true
+            windowManager.restorePlaylistIfNeeded(openWindow: { openWindow(id: "playlist") })
+        }
         .onMoveCommand { direction in
             switch direction {
             case .left:
@@ -244,18 +250,12 @@ struct PlaylistView: View {
     @ObservedObject var viewModel: AudioPlayerViewModel
     @State private var isImporterPresented = false
     @State private var hoveredSongId: UUID?
-    @State private var searchText = ""
     @State private var selection: UUID?
     @State private var infoSong: Song?
     @State private var draggingSongId: UUID?
     
     private var filteredSongs: [Song] {
-        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !query.isEmpty else { return viewModel.queue }
-        let lowercased = query.lowercased()
-        return viewModel.queue.filter {
-            $0.title.lowercased().contains(lowercased) || $0.artist.lowercased().contains(lowercased)
-        }
+        viewModel.queue
     }
     
     var body: some View {
@@ -271,63 +271,50 @@ struct PlaylistView: View {
                 
                 Spacer()
                 
-                Button(action: { viewModel.removeUnavailableSongs() }) {
-                    Image(systemName: "trash.slash")
-                        .font(.system(size: 11))
-                        .foregroundColor(.appTextSecondary)
-                        .padding(6)
-                        .background(Color.appAccent)
-                        .cornerRadius(4)
+                TooltippedView(tooltip: L10n.t(.removeMissing)) {
+                    Button(action: { viewModel.removeUnavailableSongs() }) {
+                        Image(systemName: "trash.slash")
+                            .font(.system(size: 11))
+                            .foregroundColor(.appTextSecondary)
+                            .padding(6)
+                            .background(Color.appAccent)
+                            .cornerRadius(4)
+                    }
+                    .buttonStyle(.plain)
+                    .focusable(false)
+                    .disabled(!hasUnavailable)
                 }
-                .buttonStyle(.plain)
-                .focusable(false)
-                .disabled(!hasUnavailable)
-                .help(L10n.t(.removeMissing))
                 
-                Button(action: { viewModel.clearQueue() }) {
-                    Image(systemName: "trash")
-                        .font(.system(size: 11))
-                        .foregroundColor(.appTextSecondary)
-                        .padding(6)
-                        .background(Color.appAccent)
-                        .cornerRadius(4)
+                TooltippedView(tooltip: L10n.t(.clear)) {
+                    Button(action: { viewModel.clearQueue() }) {
+                        Image(systemName: "trash")
+                            .font(.system(size: 11))
+                            .foregroundColor(.appTextSecondary)
+                            .padding(6)
+                            .background(Color.appAccent)
+                            .cornerRadius(4)
+                    }
+                    .buttonStyle(.plain)
+                    .focusable(false)
+                    .disabled(viewModel.queue.isEmpty)
                 }
-                .buttonStyle(.plain)
-                .focusable(false)
-                .disabled(viewModel.queue.isEmpty)
                 
-                Button(action: { isImporterPresented = true }) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(.appTextPrimary)
-                        .padding(6)
-                        .background(Color.appAccent)
-                        .cornerRadius(4)
+                TooltippedView(tooltip: L10n.t(.add)) {
+                    Button(action: { isImporterPresented = true }) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.appTextPrimary)
+                            .padding(6)
+                            .background(Color.appAccent)
+                            .cornerRadius(4)
+                    }
+                    .buttonStyle(.plain)
+                    .focusable(false)
+                    .keyboardShortcut("o", modifiers: [.command])
                 }
-                .buttonStyle(.plain)
-                .focusable(false)
-                .keyboardShortcut("o", modifiers: [.command])
             }
             .padding(12)
             .background(Color.appSecondary)
-            
-            // Search
-            ZStack(alignment: .trailing) {
-                SearchField(text: $searchText, placeholder: L10n.t(.searchPlaceholder))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 9))
-                    .foregroundColor(.appTextSecondary)
-                    .padding(.trailing, 2)
-                    .allowsHitTesting(false)
-            }
-            .contentShape(Rectangle())
-            .padding(.horizontal, 8)
-            .padding(.vertical, 6)
-            .background(Color.appAccent)
-            .cornerRadius(4)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
             
             if filteredSongs.isEmpty {
                 VStack(spacing: 4) {
@@ -441,7 +428,7 @@ struct PlaylistView: View {
                             targetSong: song,
                             draggingSongId: $draggingSongId,
                             viewModel: viewModel,
-                            isReorderEnabled: searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                            isReorderEnabled: true
                         ))
                         .onTapGesture(count: 2) {
                             viewModel.playSong(at: index)
@@ -592,6 +579,42 @@ struct InfoLinkRow: View {
                 .foregroundColor(.white)
                 .underline()
         }
+    }
+}
+
+// MARK: - Tooltip Wrapper (reliable even when disabled)
+private final class TooltipHostingView: NSView {
+    var hostingView: NSHostingView<AnyView>?
+}
+
+private struct TooltippedView<Content: View>: NSViewRepresentable {
+    let tooltip: String
+    let content: Content
+    
+    init(tooltip: String, @ViewBuilder content: () -> Content) {
+        self.tooltip = tooltip
+        self.content = content()
+    }
+    
+    func makeNSView(context: Context) -> TooltipHostingView {
+        let container = TooltipHostingView()
+        let hosting = NSHostingView(rootView: AnyView(content))
+        hosting.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(hosting)
+        NSLayoutConstraint.activate([
+            hosting.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            hosting.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            hosting.topAnchor.constraint(equalTo: container.topAnchor),
+            hosting.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+        ])
+        container.toolTip = tooltip
+        container.hostingView = hosting
+        return container
+    }
+    
+    func updateNSView(_ nsView: TooltipHostingView, context: Context) {
+        nsView.toolTip = tooltip
+        nsView.hostingView?.rootView = AnyView(content)
     }
 }
 
@@ -769,65 +792,6 @@ private struct InfoPanelButton: NSViewRepresentable {
     final class Coordinator: NSObject {
         @objc func clicked(_ sender: NSButton) {
             InfoPanelController.shared.toggle(relativeTo: sender)
-        }
-    }
-}
-
-// MARK: - Search Field (native, reliable focus)
-private struct SearchField: NSViewRepresentable {
-    @Binding var text: String
-    let placeholder: String
-    
-    func makeNSView(context: Context) -> NSSearchField {
-        let field = NSSearchField()
-        let cell = NSSearchFieldCell(textCell: "")
-        cell.usesSingleLineMode = true
-        cell.isScrollable = true
-        cell.searchButtonCell?.image = nil
-        cell.searchButtonCell?.isTransparent = true
-        field.cell = cell
-        field.placeholderString = placeholder
-        field.isEditable = true
-        field.isSelectable = true
-        field.isEnabled = true
-        field.isBordered = false
-        field.isBezeled = false
-        field.focusRingType = .none
-        field.drawsBackground = false
-        field.font = NSFont.systemFont(ofSize: 11)
-        field.textColor = .appTextPrimary
-        field.target = context.coordinator
-        field.action = #selector(Coordinator.commit(_:))
-        field.delegate = context.coordinator
-        return field
-    }
-    
-    func updateNSView(_ nsView: NSSearchField, context: Context) {
-        if nsView.stringValue != text {
-            nsView.stringValue = text
-        }
-        nsView.placeholderString = placeholder
-        nsView.textColor = .appTextPrimary
-    }
-    
-    func makeCoordinator() -> Coordinator {
-        Coordinator(text: $text)
-    }
-    
-    final class Coordinator: NSObject, NSSearchFieldDelegate {
-        private var text: Binding<String>
-        
-        init(text: Binding<String>) {
-            self.text = text
-        }
-        
-        @objc func commit(_ sender: NSSearchField) {
-            text.wrappedValue = sender.stringValue
-        }
-        
-        func controlTextDidChange(_ obj: Notification) {
-            guard let field = obj.object as? NSSearchField else { return }
-            text.wrappedValue = field.stringValue
         }
     }
 }

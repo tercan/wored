@@ -6,7 +6,6 @@ enum L10n {
         case unknownArtist
         case playlistTitle
         case add
-        case searchPlaceholder
         case clear
         case infoVersion
         case infoDeveloper
@@ -21,9 +20,6 @@ enum L10n {
         case emptyStateTitle
         case emptyStateSubtitle
         case playlist
-        case pin
-        case unpin
-        case miniMode
         case removeMissing
     }
     
@@ -32,7 +28,6 @@ enum L10n {
         .unknownArtist: "Bilinmeyen Sanatçı",
         .playlistTitle: "ÇALMA LİSTESİ",
         .add: "Ekle",
-        .searchPlaceholder: "Şarkı veya sanatçı ara...",
         .clear: "Temizle",
         .infoVersion: "Sürüm",
         .infoDeveloper: "Geliştirici",
@@ -44,21 +39,17 @@ enum L10n {
         .delete: "Sil",
         .info: "Bilgi",
         .play: "Çal",
-        .emptyStateTitle: "Henüz parça yok",
-        .emptyStateSubtitle: "Başlamak için dosya ekle",
+        .emptyStateTitle: "Listende henüz şarkı yok",
+        .emptyStateSubtitle: "Başlamak için listeye şarkılarını ekle",
         .playlist: "Çalma listesi",
-        .pin: "Pinle",
-        .unpin: "Ayır",
-        .miniMode: "Mini mod",
         .removeMissing: "Eksikleri temizle"
     ]
     
     private static let en: [Key: String] = [
-        .noTrackSelected: "No Track Selected",
+        .noTrackSelected: "No track selected",
         .unknownArtist: "Unknown Artist",
-        .playlistTitle: "PLAYLIST",
+        .playlistTitle: "Playlist",
         .add: "Add",
-        .searchPlaceholder: "Search song or artist...",
         .clear: "Clear",
         .infoVersion: "Version",
         .infoDeveloper: "Developer",
@@ -73,9 +64,6 @@ enum L10n {
         .emptyStateTitle: "No songs yet",
         .emptyStateSubtitle: "Add audio files to start",
         .playlist: "Playlist",
-        .pin: "Pin",
-        .unpin: "Unpin",
-        .miniMode: "Mini mode",
         .removeMissing: "Remove missing"
     ]
     
