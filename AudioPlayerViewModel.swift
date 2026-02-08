@@ -42,6 +42,75 @@ enum RepeatMode: String, CaseIterable {
     case all
 }
 
+enum EQPreset: String, CaseIterable {
+    case flat
+    case bass
+    case vocal
+    case rock
+    case electronic
+    
+    var displayName: String {
+        switch self {
+        case .flat: return "Flat"
+        case .bass: return "Bass Boost"
+        case .vocal: return "Vocal"
+        case .rock: return "Rock"
+        case .electronic: return "Electronic"
+        }
+    }
+    
+    // Band gains for 5-band EQ: [60Hz, 250Hz, 1kHz, 4kHz, 10kHz]
+    var bandGains: [Float] {
+        switch self {
+        case .flat: return [0, 0, 0, 0, 0]
+        case .bass: return [6, 4, 0, 0, 2]
+        case .vocal: return [-2, 0, 4, 2, 0]
+        case .rock: return [4, 2, -1, 3, 4]
+        case .electronic: return [4, 2, 0, 2, 5]
+        }
+    }
+}
+
+enum AppTheme: String, CaseIterable, Identifiable {
+    case system
+    case light
+    case dark
+    
+    var id: String { rawValue }
+    
+    var displayName: String {
+        switch self {
+        case .system: return "System"
+        case .light: return "Light"
+        case .dark: return "Dark"
+        }
+    }
+    
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system: return nil
+        case .light: return .light
+        case .dark: return .dark
+        }
+    }
+}
+
+enum AppLanguage: String, CaseIterable, Identifiable {
+    case system
+    case en
+    case tr
+    
+    var id: String { rawValue }
+    
+    var displayName: String {
+        switch self {
+        case .system: return "System"
+        case .en: return "English"
+        case .tr: return "Türkçe"
+        }
+    }
+}
+
 private struct CachedMetadata {
     let title: String?
     let artist: String?
@@ -65,15 +134,16 @@ struct SavedPlaylist: Codable {
 
 // NSObject required for notifications and command handling
 class AudioPlayerViewModel: NSObject, ObservableObject {
+    static let shared = AudioPlayerViewModel()
     
     private let audioEngine = AVAudioEngine()
     private let mixNode = AVAudioMixerNode()
     private let eqNode = AVAudioUnitEQ(numberOfBands: 5)
+    private let timePitchNode = AVAudioUnitTimePitch()
     private let playerNodes: [AVAudioPlayerNode] = [AVAudioPlayerNode(), AVAudioPlayerNode()]
     private var activeNodeIndex: Int = 0
     private var isCrossfading = false
     private var crossfadeTimer: Timer?
-    private let crossfadeDuration: TimeInterval = 2.0
     private var engineConfigured = false
     var timer: Timer?
     private var activeSecurityURLs: Set<URL> = []
@@ -94,13 +164,34 @@ class AudioPlayerViewModel: NSObject, ObservableObject {
     private let muteKey = "wored.mute"
     private let shuffleKey = "wored.shuffle"
     private let repeatKey = "wored.repeat"
+    private let favoritesKey = "wored.favorites"
+    private let historyKey = "wored.history"
+    private let speedKey = "wored.speed"
+    private let crossfadeKey = "wored.crossfade"
+    private let eqPresetKey = "wored.eqpreset"
+    private let alwaysOnTopKey = "wored.alwaysontop"
+    private let themeKey = "wored.theme"
+    private let launchAtStartupKey = "wored.launchAtStartup"
+    private let languageKey = "wored.language"
     private let playlistVersion = 1
+    private let maxHistoryCount = 50
+    
+    // Favorites storage (URL paths as strings)
+    @Published private(set) var favoriteURLs: Set<String> = []
+    
+    // History storage (song paths with timestamps)
+    @Published private(set) var playHistory: [(path: String, timestamp: Date)] = []
     
     // Playlist Data
     @Published var queue: [Song] = []       // Song queue
     @Published var currentIndex: Int? = nil // Currently playing song index
     
-    @Published var isPlaying: Bool = false
+    @Published var isPlaying: Bool = false {
+        didSet {
+            MPNowPlayingInfoCenter.default().playbackState = isPlaying ? .playing : .paused
+            updateNowPlayingElapsed()
+        }
+    }
     @Published var currentSongTitle: String = L10n.t(.noTrackSelected)
     @Published var artist: String = ""
     @Published var albumArt: NSImage? = nil
@@ -131,6 +222,52 @@ class AudioPlayerViewModel: NSObject, ObservableObject {
             UserDefaults.standard.set(repeatMode.rawValue, forKey: repeatKey)
         }
     }
+    @Published var playbackRate: Float = 1.0 {
+        didSet {
+            let clamped = min(max(playbackRate, 0.5), 2.0)
+            if clamped != playbackRate { playbackRate = clamped }
+            UserDefaults.standard.set(Double(playbackRate), forKey: speedKey)
+            timePitchNode.rate = playbackRate
+        }
+    }
+    @Published var crossfadeDuration: TimeInterval = 2.0 {
+        didSet {
+            let clamped = min(max(crossfadeDuration, 0), 5)
+            if clamped != crossfadeDuration { crossfadeDuration = clamped }
+            UserDefaults.standard.set(crossfadeDuration, forKey: crossfadeKey)
+        }
+    }
+    @Published var eqPreset: EQPreset = .flat {
+        didSet {
+            UserDefaults.standard.set(eqPreset.rawValue, forKey: eqPresetKey)
+            applyEQPreset()
+        }
+    }
+    @Published var alwaysOnTop: Bool = false {
+        didSet {
+            UserDefaults.standard.set(alwaysOnTop, forKey: alwaysOnTopKey)
+        }
+    }
+    
+    @Published var appTheme: AppTheme = .system {
+        didSet {
+            UserDefaults.standard.set(appTheme.rawValue, forKey: themeKey)
+        }
+    }
+    
+    @Published var launchAtStartup: Bool = false {
+        didSet {
+            UserDefaults.standard.set(launchAtStartup, forKey: launchAtStartupKey)
+            // TODO: Implement actual SMAppService logic here
+        }
+    }
+    
+    @Published var appLanguage: AppLanguage = .system {
+        didSet {
+            UserDefaults.standard.set(appLanguage.rawValue, forKey: languageKey)
+            // Trigger UI update if needed (Localization.t reads from UserDefaults)
+        }
+    }
     
     // File path for saving playlist
     private var playlistURL: URL {
@@ -146,6 +283,8 @@ class AudioPlayerViewModel: NSObject, ObservableObject {
     override init() {
         super.init()
         loadPreferences()
+        loadFavorites()
+        loadHistory()
         loadPlaylist()
         configureAudioEngine()
         configureRemoteCommandCenter()
@@ -213,6 +352,31 @@ class AudioPlayerViewModel: NSObject, ObservableObject {
            let mode = RepeatMode(rawValue: raw) {
             repeatMode = mode
         }
+        let storedSpeed = UserDefaults.standard.object(forKey: speedKey) as? Double
+        playbackRate = Float(storedSpeed ?? 1.0)
+        
+        // New settings
+        let storedCrossfade = UserDefaults.standard.object(forKey: crossfadeKey) as? Double
+        crossfadeDuration = storedCrossfade ?? 2.0
+        
+        if let rawEQ = UserDefaults.standard.string(forKey: eqPresetKey),
+           let preset = EQPreset(rawValue: rawEQ) {
+            eqPreset = preset
+        }
+        
+        alwaysOnTop = UserDefaults.standard.bool(forKey: alwaysOnTopKey)
+        
+        if let rawTheme = UserDefaults.standard.string(forKey: themeKey),
+           let theme = AppTheme(rawValue: rawTheme) {
+            appTheme = theme
+        }
+        
+        launchAtStartup = UserDefaults.standard.bool(forKey: launchAtStartupKey)
+        
+        if let rawLang = UserDefaults.standard.string(forKey: languageKey),
+           let lang = AppLanguage(rawValue: rawLang) {
+            appLanguage = lang
+        }
     }
     
     private func reportError(_ message: String) {
@@ -221,18 +385,86 @@ class AudioPlayerViewModel: NSObject, ObservableObject {
         }
     }
     
+    // MARK: - Favorites
+    
+    private func loadFavorites() {
+        if let paths = UserDefaults.standard.stringArray(forKey: favoritesKey) {
+            favoriteURLs = Set(paths)
+        }
+    }
+    
+    private func saveFavorites() {
+        UserDefaults.standard.set(Array(favoriteURLs), forKey: favoritesKey)
+    }
+    
+    func toggleFavorite(song: Song) {
+        let path = song.url.path
+        if favoriteURLs.contains(path) {
+            favoriteURLs.remove(path)
+        } else {
+            favoriteURLs.insert(path)
+        }
+        saveFavorites()
+    }
+    
+    func isFavorite(song: Song) -> Bool {
+        favoriteURLs.contains(song.url.path)
+    }
+    
+    // MARK: - History
+    
+    private func loadHistory() {
+        guard let data = UserDefaults.standard.data(forKey: historyKey),
+              let decoded = try? JSONDecoder().decode([[String: String]].self, from: data) else { return }
+        
+        let formatter = ISO8601DateFormatter()
+        playHistory = decoded.compactMap { entry in
+            guard let path = entry["path"],
+                  let timestampStr = entry["timestamp"],
+                  let timestamp = formatter.date(from: timestampStr) else { return nil }
+            return (path: path, timestamp: timestamp)
+        }
+    }
+    
+    private func saveHistory() {
+        let formatter = ISO8601DateFormatter()
+        let encoded: [[String: String]] = playHistory.map { entry in
+            ["path": entry.path, "timestamp": formatter.string(from: entry.timestamp)]
+        }
+        if let data = try? JSONEncoder().encode(encoded) {
+            UserDefaults.standard.set(data, forKey: historyKey)
+        }
+    }
+    
+    func recordToHistory(song: Song) {
+        let entry = (path: song.url.path, timestamp: Date())
+        playHistory.insert(entry, at: 0)
+        if playHistory.count > maxHistoryCount {
+            playHistory = Array(playHistory.prefix(maxHistoryCount))
+        }
+        saveHistory()
+    }
+    
+    func clearHistory() {
+        playHistory.removeAll()
+        saveHistory()
+    }
+    
     private func configureAudioEngine() {
         guard !engineConfigured else { return }
         engineConfigured = true
         
         audioEngine.attach(mixNode)
         audioEngine.attach(eqNode)
+        audioEngine.attach(timePitchNode)
         playerNodes.forEach { node in
             audioEngine.attach(node)
             audioEngine.connect(node, to: mixNode, format: nil)
         }
         audioEngine.connect(mixNode, to: eqNode, format: nil)
-        audioEngine.connect(eqNode, to: audioEngine.mainMixerNode, format: nil)
+        audioEngine.connect(eqNode, to: timePitchNode, format: nil)
+        audioEngine.connect(timePitchNode, to: audioEngine.mainMixerNode, format: nil)
+        timePitchNode.rate = playbackRate
         
         let bandFrequencies: [Float] = [60, 250, 1000, 4000, 10000]
         for (index, band) in eqNode.bands.enumerated() {
@@ -245,6 +477,16 @@ class AudioPlayerViewModel: NSObject, ObservableObject {
         
         updateOutputVolume()
         startEngineIfNeeded()
+        applyEQPreset()
+    }
+    
+    private func applyEQPreset() {
+        let gains = eqPreset.bandGains
+        for (index, band) in eqNode.bands.enumerated() {
+            if index < gains.count {
+                band.gain = gains[index]
+            }
+        }
     }
     
     private func startEngineIfNeeded() {
@@ -603,6 +845,7 @@ class AudioPlayerViewModel: NSObject, ObservableObject {
         
         guard scheduleFile(for: resolvedIndex, on: activeNode, startTime: pendingResumeIndex == resolvedIndex ? pendingResumeTime : nil) else { return }
         applySongInfo(for: resolvedIndex)
+        recordToHistory(song: queue[resolvedIndex])
         currentPlaybackOffset = pendingResumeIndex == resolvedIndex ? (pendingResumeTime ?? 0) : 0
         
         if let resumeIndex = pendingResumeIndex, resumeIndex == resolvedIndex, let resumeTime = pendingResumeTime {
@@ -809,6 +1052,24 @@ class AudioPlayerViewModel: NSObject, ObservableObject {
         case .one:
             repeatMode = .none
         }
+    }
+    
+    func cyclePlaybackSpeed() {
+        let speeds: [Float] = [1.0, 1.25, 1.5, 2.0, 0.75, 0.5]
+        if let currentIndex = speeds.firstIndex(of: playbackRate) {
+            let nextIndex = (currentIndex + 1) % speeds.count
+            playbackRate = speeds[nextIndex]
+        } else {
+            playbackRate = 1.0
+        }
+    }
+    
+    var playbackSpeedText: String {
+        if playbackRate == 1.0 { return "1x" }
+        if playbackRate == floor(playbackRate) {
+            return String(format: "%.0fx", playbackRate)
+        }
+        return String(format: "%.2gx", playbackRate)
     }
     
     private func stopNodes() {
@@ -1254,6 +1515,28 @@ class AudioPlayerViewModel: NSObject, ObservableObject {
         }
         
         queue.remove(at: index)
+        rebuildPlaybackOrderForCurrent()
+        savePlaylist()
+    }
+    
+    // Play Next: Insert song after currently playing song
+    func playNext(song: Song) {
+        let insertIndex: Int
+        if let current = currentIndex {
+            insertIndex = current + 1
+        } else {
+            insertIndex = 0
+        }
+        
+        guard insertIndex <= queue.count else { return }
+        queue.insert(song, at: insertIndex)
+        rebuildPlaybackOrderForCurrent()
+        savePlaylist()
+    }
+    
+    // Add to Queue: Append song to the end of the queue
+    func addToQueue(song: Song) {
+        queue.append(song)
         rebuildPlaybackOrderForCurrent()
         savePlaylist()
     }

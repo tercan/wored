@@ -10,17 +10,48 @@ import AppKit
 import Combine
 
 // MARK: - App Color Palette
+extension NSColor {
+    convenience init(hex: String) {
+        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        var int: UInt64 = 0
+        Scanner(string: hex).scanHexInt64(&int)
+        let r, g, b: UInt64
+        switch hex.count {
+        case 6:
+            (r, g, b) = ((int >> 16) & 0xFF, (int >> 8) & 0xFF, int & 0xFF)
+        default:
+            (r, g, b) = (0, 0, 0)
+        }
+        self.init(
+            red: CGFloat(r) / 255,
+            green: CGFloat(g) / 255,
+            blue: CGFloat(b) / 255,
+            alpha: 1.0
+        )
+    }
+}
+
 extension Color {
-    static let appBackground = Color(hex: "0A1226")
-    static let appSecondary = Color(hex: "0E1A33")
-    static let appAccent = Color(hex: "13224A")
-    static let appHighlight = Color(hex: "003999")
-    static let appHighlightText = Color(hex: "C8D8FF")
-    static let appControlDefault = Color(hex: "0C328C")
+    private static func dynamic(light: String, dark: String) -> Color {
+        Color(nsColor: NSColor(name: nil, dynamicProvider: { appearance in
+            appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+                ? NSColor(hex: dark)
+                : NSColor(hex: light)
+        }))
+    }
+
+    static let appBackground = dynamic(light: "F5F7FA", dark: "0A1226")
+    static let appSecondary = dynamic(light: "FFFFFF", dark: "0E1A33")
+    static let appAccent = dynamic(light: "E4E9F2", dark: "13224A")
+    // AppHighlight ve text renkleri tema değişince de aynı kalabilir veya uyarlanabilir
+    // Şimdilik highlight'ı sabit tutalım, textleri uyarlayalım
+    static let appHighlight = Color(hex: "003999") 
+    static let appHighlightText = dynamic(light: "003999", dark: "C8D8FF")
+    static let appControlDefault = dynamic(light: "D1D9E6", dark: "0C328C")
     static let appControlActive = Color(hex: "448AFF")
-    static let appTextPrimary = Color(hex: "E9F0FF")
-    static let appTextSecondary = Color(hex: "B8C6E6")
-    static let appDivider = Color(hex: "1B2B55")
+    static let appTextPrimary = dynamic(light: "1A202C", dark: "E9F0FF")
+    static let appTextSecondary = dynamic(light: "718096", dark: "B8C6E6")
+    static let appDivider = dynamic(light: "E2E8F0", dark: "1B2B55")
     
     init(hex: String) {
         let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
@@ -102,6 +133,10 @@ class WindowManager: ObservableObject {
     
     func registerPlayerWindow(_ window: NSWindow) {
         playerWindow = window
+        
+        // Synch always on top state
+        window.level = AudioPlayerViewModel.shared.alwaysOnTop ? .floating : .normal
+        
         enforcePlaylistWidth()
         
         // Observe player window movement
@@ -336,7 +371,7 @@ class WindowManager: ObservableObject {
 
 @main
 struct woredApp: App {
-    @StateObject private var viewModel = AudioPlayerViewModel()
+    @StateObject private var viewModel = AudioPlayerViewModel.shared
     
     var body: some Scene {
         // Main Player Window
@@ -370,12 +405,19 @@ struct PlayerWindowAccessor: NSViewRepresentable {
         let view = NSView()
         DispatchQueue.main.async {
             if let window = view.window {
-                window.styleMask = [.borderless, .miniaturizable]
+                window.styleMask = [.borderless, .closable, .miniaturizable]
                 window.titlebarAppearsTransparent = true
                 window.titleVisibility = .hidden
                 window.isMovableByWindowBackground = true
                 window.backgroundColor = .appBackground
                 window.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
+                
+                // Always on top support
+                if AudioPlayerViewModel.shared.alwaysOnTop {
+                    window.level = .floating
+                } else {
+                    window.level = .normal
+                }
                 
                 if let contentView = window.contentView {
                     contentView.wantsLayer = true
@@ -404,7 +446,7 @@ struct PlaylistWindowAccessor: NSViewRepresentable {
         let view = NSView()
         DispatchQueue.main.async {
             if let window = view.window {
-                window.styleMask = [.borderless, .resizable, .miniaturizable]
+                window.styleMask = [.borderless, .closable, .resizable, .miniaturizable]
                 window.titlebarAppearsTransparent = true
                 window.titleVisibility = .hidden
                 window.isMovableByWindowBackground = false

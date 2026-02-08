@@ -13,6 +13,7 @@ A minimal music player for macOS built with SwiftUI.
 - Drag and drop playlist reordering
 - Auto-advance to next song
 - Sharp, flat UI design (zero border radius)
+- Settings panel with themes, EQ, and window controls
 
 ## Requirements
 
@@ -34,4 +35,4 @@ A minimal music player for macOS built with SwiftUI.
 
 ## Version
 
-0.1.1
+0.2.0

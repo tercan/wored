@@ -23,5 +23,9 @@ DerivedData/
 # Misc
 *.xcscmblueprint
 
-#Documentation
+# Documentation
 docs/
+
+# Agents
+.gemini/
+.claude/

@@ -2,6 +2,30 @@
 
 All notable changes to Wored will be documented in this file.
 
+## [0.2.0] - 2026-02-08
+
+### Added
+
+- Settings Panel with radiusless design (280x460).
+- Audio Settings: Crossfade duration (0-5s) and EQ Presets.
+- UI Settings: "Always on Top" toggle, Theme selection (System/Light/Dark).
+- System Settings: Launch at Startup toggle, Language selection (System/TR/EN).
+- Custom `SquareSlider` component for consistent "knob" style.
+- Dynamic color support for theming.
+
+### Changed
+
+- Player window padding reduced to uniform 5px.
+- Settings panel positioning logic (side-by-side with player).
+- Playlist actions separated from header with a divider line.
+- Refactored `AudioPlayerViewModel` to singleton pattern.
+- Updated `Localization` logic to prioritize user preference.
+
+### Fixed
+
+- "Always on Top" window level behavior utilizing `WindowManager`.
+- Layout inconsistencies in Player and Playlist views.
+
 ## [0.1.1] - 2026-02-05
 
 ### Added

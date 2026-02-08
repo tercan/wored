@@ -21,7 +21,9 @@ struct PlayerView: View {
     
     var body: some View {
         VStack(spacing: 6) {
-                    HStack(spacing: 10) {
+
+                
+            HStack(spacing: 10) {
                         Group {
                             if let art = viewModel.albumArt {
                                 Image(nsImage: art)
@@ -118,52 +120,86 @@ struct PlayerView: View {
                                 Image(systemName: "backward.end.fill")
                                     .font(.system(size: 11))
                                     .foregroundColor(.appControlDefault)
-                                    .frame(minWidth: 16, minHeight: 16)
+                                    .frame(width: 18, height: 18)
                             }
                             .buttonStyle(.plain)
                             .focusable(false)
                             .contentShape(Rectangle())
+                            .overlay(
+                                Rectangle()
+                                    .stroke(Color.appControlDefault.opacity(0.3), lineWidth: 1)
+                            )
                             
                             Button(action: { viewModel.togglePlayPause() }) {
                                 Image(systemName: viewModel.isPlaying ? "pause.fill" : "play.fill")
                                     .font(.system(size: 14))
                                     .foregroundColor(viewModel.isPlaying ? .appControlActive : .appControlDefault)
-                                    .frame(minWidth: 16, minHeight: 16)
+                                    .frame(width: 18, height: 18)
                             }
                             .buttonStyle(.plain)
                             .focusable(false)
                             .keyboardShortcut(.space, modifiers: [])
                             .contentShape(Rectangle())
+                            .overlay(
+                                Rectangle()
+                                    .stroke(Color.appControlDefault.opacity(0.3), lineWidth: 1)
+                            )
                             
                             Button(action: { viewModel.nextSong() }) {
                                 Image(systemName: "forward.end.fill")
                                     .font(.system(size: 11))
                                     .foregroundColor(.appControlDefault)
-                                    .frame(minWidth: 16, minHeight: 16)
+                                    .frame(width: 18, height: 18)
                             }
                             .buttonStyle(.plain)
                             .focusable(false)
                             .contentShape(Rectangle())
+                            .overlay(
+                                Rectangle()
+                                    .stroke(Color.appControlDefault.opacity(0.3), lineWidth: 1)
+                            )
                             
                             Button(action: { viewModel.toggleShuffle() }) {
                                 Image(systemName: "shuffle")
                                     .font(.system(size: 11))
                                     .foregroundColor(viewModel.isShuffled ? .appControlActive : .appControlDefault)
-                                    .frame(minWidth: 16, minHeight: 16)
+                                    .frame(width: 18, height: 18)
                             }
                             .buttonStyle(.plain)
                             .focusable(false)
                             .contentShape(Rectangle())
+                            .overlay(
+                                Rectangle()
+                                    .stroke(Color.appControlDefault.opacity(0.3), lineWidth: 1)
+                            )
                             
                             Button(action: { viewModel.cycleRepeatMode() }) {
                                 Image(systemName: repeatIcon)
                                     .font(.system(size: 11))
                                     .foregroundColor(repeatIsActive ? .appControlActive : .appControlDefault)
-                                    .frame(minWidth: 16, minHeight: 16)
+                                    .frame(width: 18, height: 18)
                             }
                             .buttonStyle(.plain)
                             .focusable(false)
                             .contentShape(Rectangle())
+                            .overlay(
+                                Rectangle()
+                                    .stroke(Color.appControlDefault.opacity(0.3), lineWidth: 1)
+                            )
+                            
+                            Button(action: { viewModel.cyclePlaybackSpeed() }) {
+                                Text(viewModel.playbackSpeedText)
+                                    .font(.system(size: 9, weight: .medium, design: .monospaced))
+                                    .foregroundColor(viewModel.playbackRate != 1.0 ? .appControlActive : .appControlDefault)
+                                    .frame(width: 24, height: 18)
+                            }
+                            .buttonStyle(.plain)
+                            .focusable(false)
+                            .contentShape(Rectangle())
+                            .overlay(
+                                Rectangle()
+                                    .stroke(Color.appControlDefault.opacity(0.3), lineWidth: 1)
+                            )
                             
                             Button(action: { viewModel.toggleMute() }) {
                                 Image(systemName: viewModel.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
@@ -207,7 +243,10 @@ struct PlayerView: View {
                     }
                     .frame(height: 20)
                 }
-        .padding(8)
+        .padding(5)
+        .onChange(of: viewModel.alwaysOnTop) { newValue in
+            WindowManager.shared.playerWindow?.level = newValue ? .floating : .normal
+        }
         .background(Color.appBackground)
         .frame(width: 300)
         .onAppear {
@@ -236,6 +275,8 @@ struct PlayerView: View {
                 dismissButton: .default(Text(L10n.t(.ok)))
             )
         }
+        .preferredColorScheme(viewModel.appTheme.colorScheme)
+        .id(viewModel.appLanguage) // Re-render when language changes
     }
     
     func formatTime(_ time: TimeInterval) -> String {
@@ -313,8 +354,10 @@ struct PlaylistView: View {
                     .keyboardShortcut("o", modifiers: [.command])
                 }
             }
-            .padding(12)
-            .background(Color.appSecondary)
+            .padding(10) // Reduced from 12
+            .background(Color.appBackground.opacity(0.95))
+            
+            Divider().overlay(Color.appDivider)
             
             if filteredSongs.isEmpty {
                 VStack(spacing: 4) {
@@ -394,6 +437,12 @@ struct PlaylistView: View {
                             
                             Spacer()
                             
+                            if viewModel.isFavorite(song: song) {
+                                Image(systemName: "heart.fill")
+                                    .font(.system(size: 9))
+                                    .foregroundColor(.appHighlight)
+                            }
+                            
                             if !song.isAvailable {
                                 Image(systemName: "exclamationmark.triangle.fill")
                                     .font(.system(size: 9))
@@ -437,6 +486,16 @@ struct PlaylistView: View {
                             Button(L10n.t(.play)) {
                                 viewModel.playSong(at: index)
                             }
+                            Button(L10n.t(.playNext)) {
+                                viewModel.playNext(song: song)
+                            }
+                            Button(L10n.t(.addToQueue)) {
+                                viewModel.addToQueue(song: song)
+                            }
+                            Button(viewModel.isFavorite(song: song) ? L10n.t(.removeFromFavorites) : L10n.t(.addToFavorites)) {
+                                viewModel.toggleFavorite(song: song)
+                            }
+                            Divider()
                             Button(L10n.t(.showInFinder)) {
                                 NSWorkspace.shared.activateFileViewerSelecting([song.url])
                             }
@@ -511,7 +570,9 @@ private struct SongDropDelegate: DropDelegate {
            let toIndex = viewModel.queue.firstIndex(where: { $0.id == targetSong.id }) {
             let destination = fromIndex < toIndex ? toIndex + 1 : toIndex
             if fromIndex != destination {
-                viewModel.moveSong(from: IndexSet(integer: fromIndex), to: destination)
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                    viewModel.moveSong(from: IndexSet(integer: fromIndex), to: destination)
+                }
             }
         }
         draggingSongId = nil
@@ -527,7 +588,9 @@ private struct SongDropDelegate: DropDelegate {
         
         let destination = fromIndex < toIndex ? toIndex + 1 : toIndex
         if fromIndex != destination {
-            viewModel.moveSong(from: IndexSet(integer: fromIndex), to: destination)
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                viewModel.moveSong(from: IndexSet(integer: fromIndex), to: destination)
+            }
         }
     }
     
@@ -619,43 +682,184 @@ private struct TooltippedView<Content: View>: NSViewRepresentable {
 }
 
 // MARK: - Info Panel (borderless)
-private struct InfoPanelView: View {
+private struct SettingsPanelView: View {
+    @EnvironmentObject var viewModel: AudioPlayerViewModel
+    
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Wored")
-                .font(.system(size: 13, weight: .bold))
-                .foregroundColor(.appTextPrimary)
-            
-            Divider()
-                .overlay(Color.appDivider)
-            
-            VStack(alignment: .leading, spacing: 4) {
-                InfoRow(label: L10n.t(.infoVersion), value: "0.1.0")
-                InfoRow(label: L10n.t(.infoDeveloper), value: "Tercan Keskin")
-                InfoLinkRow(
-                    label: "",
-                    title: "tercan.net",
-                    url: URL(string: "https://tercan.net/")!
-                )
-                InfoRow(label: L10n.t(.infoBuild), value: "2026.01.03")
+        VStack(alignment: .leading, spacing: 0) {
+            // Header
+            HStack(spacing: 6) {
+                Image(systemName: "gearshape.fill")
+                    .font(.system(size: 12))
+                    .foregroundColor(.appHighlight)
+                Text(L10n.t(.settings))
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(.appTextPrimary)
+                Spacer()
             }
+            .padding(12)
+            .padding(.top, 8) // Added extra top spacing
+            .background(Color.appSecondary)
             
-            Divider()
-                .overlay(Color.appDivider)
+            Divider().overlay(Color.appDivider)
             
-            Text(L10n.t(.infoSubtitle))
-                .font(.system(size: 10))
-                .foregroundColor(.appTextSecondary)
+            VStack(alignment: .leading, spacing: 16) {
+                // Audio Section
+                VStack(spacing: 8) {
+                    SectionHeader(title: L10n.t(.settingsAudio))
+                    
+                    // Crossfade
+                    SettingsRow(icon: "waveform", title: L10n.t(.settingsCrossfade)) {
+                        HStack(spacing: 8) {
+                            Text(String(format: "%.1fs", viewModel.crossfadeDuration))
+                                .font(.system(size: 10, design: .monospaced))
+                                .foregroundColor(.appHighlightText)
+                                .frame(width: 30, alignment: .trailing)
+                            
+                            SquareSlider(value: $viewModel.crossfadeDuration, range: 0...5)
+                                .frame(width: 60, height: 12)
+                        }
+                    }
+                    
+                    // EQ
+                    SettingsRow(icon: "slider.vertical.3", title: L10n.t(.settingsEQ)) {
+                        Picker("", selection: $viewModel.eqPreset) {
+                            ForEach(EQPreset.allCases, id: \.self) { preset in
+                                Text(preset.displayName).tag(preset)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .frame(width: 100)
+                        .labelsHidden()
+                    }
+                }
+                
+                // Interface Section
+                VStack(spacing: 8) {
+                    SectionHeader(title: L10n.t(.settingsUI))
+                    
+                    SettingsRow(icon: "uiwindow.split.2x1", title: L10n.t(.settingsAlwaysOnTop)) {
+                        Toggle("", isOn: $viewModel.alwaysOnTop)
+                            .toggleStyle(.switch)
+                            .tint(.appHighlight)
+                            .labelsHidden()
+                            .allowsHitTesting(false) // Handle tap on row
+                    }
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        viewModel.alwaysOnTop.toggle()
+                    }
+                    
+                    SettingsRow(icon: "paintpalette", title: L10n.t(.settingsTheme)) {
+                        Picker("", selection: $viewModel.appTheme) {
+                            ForEach(AppTheme.allCases) { theme in
+                                Text(theme.displayName).tag(theme)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .frame(width: 100)
+                        .labelsHidden()
+                    }
+                }
+                
+                // System Section
+                VStack(spacing: 8) {
+                    SectionHeader(title: L10n.t(.settingsSystem))
+                    
+                    SettingsRow(icon: "power", title: L10n.t(.settingsLaunchAtStartup)) {
+                        Toggle("", isOn: $viewModel.launchAtStartup)
+                            .toggleStyle(.switch)
+                            .tint(.appHighlight)
+                            .labelsHidden()
+                            .allowsHitTesting(false) // Handle tap on row
+                    }
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        viewModel.launchAtStartup.toggle()
+                    }
+                    
+                    SettingsRow(icon: "globe", title: L10n.t(.settingsLanguage)) {
+                        Picker("", selection: $viewModel.appLanguage) {
+                            ForEach(AppLanguage.allCases) { lang in
+                                Text(lang.displayName).tag(lang)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .frame(width: 100)
+                        .labelsHidden()
+                    }
+                }
+                
+                Divider().overlay(Color.appDivider.opacity(0.5))
+                
+                // Footer Info
+                HStack {
+                    Text("v0.2.0 (2026.02.08)")
+                        .font(.system(size: 10))
+                        .foregroundColor(.appTextSecondary)
+                    Spacer()
+                    Text("Tercan Keskin")
+                        .font(.system(size: 10))
+                        .foregroundColor(.appTextSecondary)
+                }
+                .padding(.top, 4)
+            }
+            .padding(16)
+            
+            Spacer()
         }
-        .padding(12)
-        .frame(width: 190)
-        .background(Color.appSecondary)
+        .frame(width: 280, height: 460) // Increased height, slightly narrower
+        .background(Color.appBackground)
         .overlay(
             Rectangle()
-                .stroke(Color.appAccent, lineWidth: 3)
+                .stroke(Color.appDivider, lineWidth: 1)
         )
     }
 }
+
+private struct SectionHeader: View {
+    let title: String
+    var body: some View {
+        Text(title.uppercased())
+            .font(.system(size: 9, weight: .bold))
+            .foregroundColor(.appTextSecondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.bottom, 2)
+    }
+}
+
+private struct SettingsRow<Content: View>: View {
+    let icon: String
+    let title: String
+    @ViewBuilder let content: Content
+    
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 12))
+                .foregroundColor(.appTextSecondary)
+                .frame(width: 16)
+            
+            Text(title)
+                .font(.system(size: 12))
+                .foregroundColor(.appTextPrimary)
+            
+            Spacer()
+            
+            content
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 10)
+        .background(Color.appSecondary.opacity(0.5))
+        .cornerRadius(0) // Radiusless
+        .overlay(
+            Rectangle() // Radiusless border
+                .stroke(Color.appDivider.opacity(0.5), lineWidth: 1)
+        )
+    }
+}
+
+
 
 private final class InfoPanelController: NSObject, NSWindowDelegate {
     static let shared = InfoPanelController()
@@ -675,7 +879,7 @@ private final class InfoPanelController: NSObject, NSWindowDelegate {
     
     private func show(relativeTo anchor: NSView) {
         let panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 190, height: 140),
+            contentRect: NSRect(x: 0, y: 0, width: 280, height: 460),
             styleMask: [.borderless],
             backing: .buffered,
             defer: false
@@ -683,7 +887,7 @@ private final class InfoPanelController: NSObject, NSWindowDelegate {
         panel.isReleasedWhenClosed = false
         panel.hasShadow = false
         panel.isOpaque = true
-        panel.backgroundColor = .appSecondary
+        panel.backgroundColor = .clear // Transparent background for custom view background
         panel.level = .floating
         panel.hidesOnDeactivate = true
         panel.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
@@ -692,17 +896,32 @@ private final class InfoPanelController: NSObject, NSWindowDelegate {
         panel.isMovableByWindowBackground = true
         panel.delegate = self
         
-        let hostingView = NSHostingView(rootView: InfoPanelView())
+        let hostingView = NSHostingView(rootView: SettingsPanelView().environmentObject(AudioPlayerViewModel.shared))
         hostingView.wantsLayer = true
-        hostingView.layer?.cornerRadius = 0
+        hostingView.layer?.cornerRadius = 0 // Radiusless
         hostingView.layer?.masksToBounds = true
+        hostingView.layer?.backgroundColor = NSColor.clear.cgColor
         panel.contentView = hostingView
         
         if let window = anchor.window {
-            let rectInWindow = anchor.convert(anchor.bounds, to: nil)
-            let rectOnScreen = window.convertToScreen(rectInWindow)
-            let x = rectOnScreen.minX
-            let y = rectOnScreen.minY - panel.frame.height - 6
+            let windowFrame = window.frame
+            let panelWidth: CGFloat = 280
+            let panelHeight: CGFloat = 460
+            
+            // Default to right side
+            var x = windowFrame.maxX + 12
+            
+            // Check screen bounds
+            if let screen = window.screen {
+                if x + panelWidth > screen.visibleFrame.maxX {
+                   // Move to left side
+                   x = windowFrame.minX - panelWidth - 12
+                }
+            }
+            
+            // Center vertically relative to player window
+            let y = windowFrame.midY - (panelHeight / 2)
+            
             panel.setFrameOrigin(NSPoint(x: x, y: y))
         }
         
@@ -765,7 +984,7 @@ private struct InfoPanelButton: NSViewRepresentable {
         let button = NSButton()
         button.bezelStyle = .regularSquare
         button.isBordered = false
-        button.image = NSImage(systemSymbolName: "info.circle", accessibilityDescription: nil)
+        button.image = NSImage(systemSymbolName: "gearshape", accessibilityDescription: nil)
         button.image?.size = NSSize(width: 10, height: 10)
         button.contentTintColor = .appHighlight
         button.target = context.coordinator
@@ -1024,6 +1243,49 @@ struct PopoverWindowAccessor: NSViewRepresentable {
             contentView.wantsLayer = true
             contentView.layer?.cornerRadius = 0
             contentView.layer?.masksToBounds = true
+        }
+    }
+}
+
+// MARK: - Scroll Event Handler
+struct ScrollableView<Content: View>: NSViewRepresentable {
+    let content: Content
+    var onVerticalScroll: ((CGFloat) -> Void)?
+    var onHorizontalScroll: ((CGFloat) -> Void)?
+    
+    init(@ViewBuilder content: () -> Content,
+         onVerticalScroll: ((CGFloat) -> Void)? = nil,
+         onHorizontalScroll: ((CGFloat) -> Void)? = nil) {
+        self.content = content()
+        self.onVerticalScroll = onVerticalScroll
+        self.onHorizontalScroll = onHorizontalScroll
+    }
+    
+    func makeNSView(context: Context) -> NSHostingView<Content> {
+        let hostingView = ScrollableHostingView(rootView: content)
+        hostingView.onVerticalScroll = onVerticalScroll
+        hostingView.onHorizontalScroll = onHorizontalScroll
+        return hostingView
+    }
+    
+    func updateNSView(_ nsView: NSHostingView<Content>, context: Context) {
+        nsView.rootView = content
+        if let scrollable = nsView as? ScrollableHostingView<Content> {
+            scrollable.onVerticalScroll = onVerticalScroll
+            scrollable.onHorizontalScroll = onHorizontalScroll
+        }
+    }
+}
+
+class ScrollableHostingView<Content: View>: NSHostingView<Content> {
+    var onVerticalScroll: ((CGFloat) -> Void)?
+    var onHorizontalScroll: ((CGFloat) -> Void)?
+    
+    override func scrollWheel(with event: NSEvent) {
+        if abs(event.scrollingDeltaY) > abs(event.scrollingDeltaX) {
+            onVerticalScroll?(event.scrollingDeltaY)
+        } else if abs(event.scrollingDeltaX) > 0 {
+            onHorizontalScroll?(event.scrollingDeltaX)
         }
     }
 }
