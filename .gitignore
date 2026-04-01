@@ -25,7 +25,11 @@ DerivedData/
 
 # Documentation
 docs/
+documents/
 
 # Agents
 .gemini/
 .claude/
+.codex/
+.agent/
+.agents/

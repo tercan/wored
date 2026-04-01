@@ -2,6 +2,16 @@
 
 All notable changes to Wored will be documented in this file.
 
+## [0.4.1] - 2026-04-01 23:20
+
+### Fixed
+
+- Fixed sandbox permission bug where adding a folder directly caused "access denied" errors for contained files.
+
+### Added
+
+- Added `docs/`, `documents/`, and LLM tool folders to `.gitignore`.
+
 ## [0.4.0] - 2026-04-01 23:00
 
 ### Added

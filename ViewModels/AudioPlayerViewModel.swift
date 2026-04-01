@@ -418,13 +418,13 @@ class AudioPlayerViewModel: NSObject, ObservableObject {
     private func expandURLs(_ urls: [URL]) -> [URL] {
         var results: [URL] = []
         for url in urls {
+            // Klasörün kendisi için güvenlik iznini başlat ve aktif tut
+            let accessGranted = url.startAccessingSecurityScopedResource()
+            if accessGranted {
+                activeSecurityURLs.insert(url)
+            }
+            
             if isDirectory(url) {
-                let accessGranted = url.startAccessingSecurityScopedResource()
-                defer {
-                    if accessGranted {
-                        url.stopAccessingSecurityScopedResource()
-                    }
-                }
                 if let enumerator = FileManager.default.enumerator(
                     at: url,
                     includingPropertiesForKeys: [.isDirectoryKey],
@@ -635,7 +635,6 @@ class AudioPlayerViewModel: NSObject, ObservableObject {
         activeSecurityURLs.removeAll()
     }
     
-    // Add songs to queue and auto-start
     func addSongs(urls: [URL]) {
         let expandedURLs = expandURLs(urls)
         var seen = Set(queue.map(\.url))
@@ -644,15 +643,16 @@ class AudioPlayerViewModel: NSObject, ObservableObject {
             guard !seen.contains(url) else { continue }
             seen.insert(url)
             
+            // Eğer tekil dosya eklendiyse onlara da erişim izni başlat (klasör içindekiler false dönebilir)
             let accessGranted = url.startAccessingSecurityScopedResource()
-            if !accessGranted, !FileManager.default.isReadableFile(atPath: url.path) {
+            if accessGranted {
+                activeSecurityURLs.insert(url)
+            }
+            
+            // Üst klasör veya dosyanın kendi izni aktif olduğu için (isReadableFile true döner)
+            if !accessGranted && !FileManager.default.isReadableFile(atPath: url.path) {
                 reportError("Dosyaya erişim izni alınamadı: \(url.lastPathComponent)")
                 continue
-            }
-            defer {
-                if accessGranted {
-                    url.stopAccessingSecurityScopedResource()
-                }
             }
             
             // Extract metadata and duration
