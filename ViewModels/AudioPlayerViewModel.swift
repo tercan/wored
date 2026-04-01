@@ -49,7 +49,6 @@ class AudioPlayerViewModel: NSObject, ObservableObject {
     private let themeKey = "wored.theme"
     private let launchAtStartupKey = "wored.launchAtStartup"
     private let languageKey = "wored.language"
-    private let playlistVersion = 1
     private let maxHistoryCount = 50
     
     // Favorites storage (URL paths as strings)
@@ -57,6 +56,16 @@ class AudioPlayerViewModel: NSObject, ObservableObject {
     
     // History storage (song paths with timestamps)
     @Published private(set) var playHistory: [(path: String, timestamp: Date)] = []
+    
+    // Multi-playlist management
+    @Published var playlists: [Playlist] = []
+    @Published var activePlaylistId: UUID?
+    private let playlistCollectionVersion = 2
+    
+    var activePlaylist: Playlist? {
+        guard let id = activePlaylistId else { return playlists.first }
+        return playlists.first(where: { $0.id == id })
+    }
     
     // Playlist Data
     @Published var queue: [Song] = []       // Song queue
@@ -1181,66 +1190,74 @@ class AudioPlayerViewModel: NSObject, ObservableObject {
     
     // MARK: - Playlist Persistence
     
-    // Save playlist to disk using security-scoped bookmarks
-    func savePlaylist() {
+    // Convert current queue to SavedSongs using security-scoped bookmarks
+    private func buildSavedSongs() -> [SavedSong] {
         var savedSongs: [SavedSong] = []
         
         for song in queue {
-            do {
-                let needsTemporaryAccess = !activeSecurityURLs.contains(song.url)
-                let accessGranted = needsTemporaryAccess ? song.url.startAccessingSecurityScopedResource() : false
-                defer {
-                    if needsTemporaryAccess && accessGranted {
-                        song.url.stopAccessingSecurityScopedResource()
-                    }
+            let needsTemporaryAccess = !activeSecurityURLs.contains(song.url)
+            let accessGranted = needsTemporaryAccess ? song.url.startAccessingSecurityScopedResource() : false
+            defer {
+                if needsTemporaryAccess && accessGranted {
+                    song.url.stopAccessingSecurityScopedResource()
                 }
-                
-                var bookmarkData: Data?
-                do {
-                    // Prefer security-scoped bookmark
-                    bookmarkData = try song.url.bookmarkData(
-                        options: .withSecurityScope,
-                        includingResourceValuesForKeys: nil,
-                        relativeTo: nil
-                    )
-                } catch {
-                    // Fallback for non-sandboxed/dev environments
-                    bookmarkData = try? song.url.bookmarkData()
-                }
-                
-                guard let resolvedBookmark = bookmarkData else {
-                    reportError("Bookmark oluşturulamadı: \(song.title)")
-                    continue
-                }
-                
-                let saved = SavedSong(
-                    bookmarkData: resolvedBookmark,
-                    title: song.title,
-                    artist: song.artist,
-                    duration: song.duration
-                )
-                savedSongs.append(saved)
-            } catch {
-                print("Failed to create bookmark for \(song.title): \(error)")
-                reportError("Bookmark oluşturulamadı: \(song.title)")
             }
+            
+            var bookmarkData: Data?
+            do {
+                bookmarkData = try song.url.bookmarkData(
+                    options: .withSecurityScope,
+                    includingResourceValuesForKeys: nil,
+                    relativeTo: nil
+                )
+            } catch {
+                bookmarkData = try? song.url.bookmarkData()
+            }
+            
+            guard let resolvedBookmark = bookmarkData else { continue }
+            
+            let saved = SavedSong(
+                bookmarkData: resolvedBookmark,
+                title: song.title,
+                artist: song.artist,
+                duration: song.duration
+            )
+            savedSongs.append(saved)
         }
-        savedSongsCache = savedSongs
-        writePlaylist(songs: savedSongs)
+        return savedSongs
     }
     
-    private func writePlaylist(songs: [SavedSong]) {
-        let playlist = SavedPlaylist(
-            version: playlistVersion,
-            songs: songs,
+    // Save current state to disk
+    func savePlaylist() {
+        let savedSongs = buildSavedSongs()
+        savedSongsCache = savedSongs
+        
+        // Update active playlist's songs
+        if let activeId = activePlaylistId,
+           let index = playlists.firstIndex(where: { $0.id == activeId }) {
+            playlists[index].songs = savedSongs
+            playlists[index].updatedAt = Date()
+        } else if let firstIndex = playlists.indices.first {
+            playlists[firstIndex].songs = savedSongs
+            playlists[firstIndex].updatedAt = Date()
+        }
+        
+        writePlaylistCollection()
+    }
+    
+    private func writePlaylistCollection() {
+        let collection = PlaylistCollection(
+            version: playlistCollectionVersion,
+            playlists: playlists,
+            activePlaylistId: activePlaylistId,
             lastPlayedIndex: currentIndex,
             lastPlayedPosition: currentIndex == nil ? nil : currentTime
         )
         do {
-            let data = try JSONEncoder().encode(playlist)
+            let data = try JSONEncoder().encode(collection)
             try data.write(to: playlistURL)
         } catch {
-            print("Failed to save playlist: \(error)")
+            print("Failed to save playlist collection: \(error)")
         }
     }
     
@@ -1248,120 +1265,94 @@ class AudioPlayerViewModel: NSObject, ObservableObject {
         guard currentIndex != nil, !savedSongsCache.isEmpty else { return }
         if !force, abs(currentTime - lastPlaybackSave) < 5 { return }
         lastPlaybackSave = currentTime
-        writePlaylist(songs: savedSongsCache)
+        writePlaylistCollection()
     }
     
-    // Load playlist from disk
+    // Load playlists from disk (handles legacy migration)
     func loadPlaylist() {
-        guard FileManager.default.fileExists(atPath: playlistURL.path) else { return }
+        guard FileManager.default.fileExists(atPath: playlistURL.path) else {
+            // Create default playlist on first launch
+            let defaultPlaylist = Playlist(name: L10n.t(.playlist), isDefault: true)
+            playlists = [defaultPlaylist]
+            activePlaylistId = defaultPlaylist.id
+            writePlaylistCollection()
+            return
+        }
         
         do {
             let data = try Data(contentsOf: playlistURL)
-            let decodedPlaylist: SavedPlaylist?
-            if let playlist = try? JSONDecoder().decode(SavedPlaylist.self, from: data) {
-                decodedPlaylist = playlist
+            
+            // Try new format first
+            if let collection = try? JSONDecoder().decode(PlaylistCollection.self, from: data),
+               collection.version >= 2 {
+                playlists = collection.playlists
+                activePlaylistId = collection.activePlaylistId ?? playlists.first?.id
+                
+                // Ensure default playlist exists
+                if !playlists.contains(where: { $0.isDefault }) {
+                    if playlists.isEmpty {
+                        let defaultPlaylist = Playlist(name: L10n.t(.playlist), isDefault: true)
+                        playlists.append(defaultPlaylist)
+                        activePlaylistId = defaultPlaylist.id
+                    } else {
+                        playlists[0].isDefault = true
+                    }
+                }
+                
+                // Load active playlist songs into queue
+                if let active = activePlaylist {
+                    loadSongsFromSavedSongs(active.songs)
+                }
+                
+                // Restore playback position
+                if let resumeIndex = collection.lastPlayedIndex, resumeIndex >= 0, resumeIndex < queue.count {
+                    let song = queue[resumeIndex]
+                    currentIndex = resumeIndex
+                    currentSongTitle = song.title
+                    artist = song.artist
+                    duration = song.duration
+                    let resumeTime = min(collection.lastPlayedPosition ?? 0, song.duration)
+                    currentTime = max(0, resumeTime)
+                    pendingResumeIndex = resumeIndex
+                    pendingResumeTime = resumeTime
+                }
+                return
+            }
+            
+            // Legacy migration: try old LegacySavedPlaylist format
+            let legacyPlaylist: LegacySavedPlaylist?
+            if let lp = try? JSONDecoder().decode(LegacySavedPlaylist.self, from: data) {
+                legacyPlaylist = lp
             } else {
-                decodedPlaylist = nil
+                legacyPlaylist = nil
             }
             
             let savedSongs: [SavedSong]
             let lastPlayedIndex: Int?
             let lastPlayedPosition: TimeInterval?
-            if let playlist = decodedPlaylist {
-                savedSongs = playlist.songs
-                lastPlayedIndex = playlist.lastPlayedIndex
-                lastPlayedPosition = playlist.lastPlayedPosition
+            if let lp = legacyPlaylist {
+                savedSongs = lp.songs
+                lastPlayedIndex = lp.lastPlayedIndex
+                lastPlayedPosition = lp.lastPlayedPosition
             } else {
                 savedSongs = try JSONDecoder().decode([SavedSong].self, from: data)
                 lastPlayedIndex = nil
                 lastPlayedPosition = nil
             }
             
-            var refreshedSongs = savedSongs
-            var didRefreshBookmarks = false
+            // Create default playlist from legacy data
+            let defaultPlaylist = Playlist(
+                name: L10n.t(.playlist),
+                songs: savedSongs,
+                isDefault: true
+            )
+            playlists = [defaultPlaylist]
+            activePlaylistId = defaultPlaylist.id
             
-            for (index, saved) in savedSongs.enumerated() {
-                var isStale = false
-                
-                // Resolve bookmark to URL
-                let resolvedURL: URL?
-                if let url = try? URL(
-                    resolvingBookmarkData: saved.bookmarkData,
-                    options: .withSecurityScope,
-                    relativeTo: nil,
-                    bookmarkDataIsStale: &isStale
-                ) {
-                    resolvedURL = url
-                } else if let url = try? URL(
-                    resolvingBookmarkData: saved.bookmarkData,
-                    options: [.withoutUI],
-                    relativeTo: nil,
-                    bookmarkDataIsStale: &isStale
-                ) {
-                    resolvedURL = url
-                } else {
-                    resolvedURL = nil
-                }
-                
-                guard let url = resolvedURL else { continue }
-                
-                var refreshedBookmark: Data?
-                if isStale {
-                    refreshedBookmark = (try? url.bookmarkData(
-                        options: .withSecurityScope,
-                        includingResourceValuesForKeys: nil,
-                        relativeTo: nil
-                    )) ?? (try? url.bookmarkData())
-                } else {
-                    let accessGranted = url.startAccessingSecurityScopedResource()
-                    defer {
-                        if accessGranted {
-                            url.stopAccessingSecurityScopedResource()
-                        }
-                    }
-                    refreshedBookmark = try? url.bookmarkData(
-                        options: .withSecurityScope,
-                        includingResourceValuesForKeys: nil,
-                        relativeTo: nil
-                    )
-                }
-                
-                if let newBookmark = refreshedBookmark, newBookmark != saved.bookmarkData {
-                    refreshedSongs[index] = SavedSong(
-                        bookmarkData: newBookmark,
-                        title: saved.title,
-                        artist: saved.artist,
-                        duration: saved.duration
-                    )
-                    didRefreshBookmarks = true
-                }
-                
-                let song = Song(
-                    url: url,
-                    title: saved.title,
-                    artist: saved.artist,
-                    duration: saved.duration,
-                    isAvailable: checkAvailability(for: url)
-                )
-                queue.append(song)
-                if saved.duration > 0 {
-                    durationCache[url] = saved.duration
-                }
-                
-                if saved.duration <= 0 {
-                    scheduleDurationLoad(for: url, songId: song.id)
-                }
-            }
+            // Load songs into queue
+            loadSongsFromSavedSongs(savedSongs)
             
-            savedSongsCache = refreshedSongs
-            
-            if didRefreshBookmarks {
-                writePlaylist(songs: refreshedSongs)
-            } else if decodedPlaylist == nil {
-                // Migrate legacy format to versioned playlist
-                writePlaylist(songs: refreshedSongs)
-            }
-            
+            // Restore playback position
             if let resumeIndex = lastPlayedIndex, resumeIndex >= 0, resumeIndex < queue.count {
                 let song = queue[resumeIndex]
                 currentIndex = resumeIndex
@@ -1373,10 +1364,203 @@ class AudioPlayerViewModel: NSObject, ObservableObject {
                 pendingResumeIndex = resumeIndex
                 pendingResumeTime = resumeTime
             }
+            
+            // Migrate to new format
+            writePlaylistCollection()
         } catch {
             print("Failed to load playlist: \(error)")
             reportError("Playlist yüklenemedi: \(error.localizedDescription)")
         }
+    }
+    
+    // Resolve SavedSongs into queue Songs
+    private func loadSongsFromSavedSongs(_ savedSongs: [SavedSong]) {
+        var refreshedSongs = savedSongs
+        var didRefreshBookmarks = false
+        
+        for (index, saved) in savedSongs.enumerated() {
+            var isStale = false
+            
+            let resolvedURL: URL?
+            if let url = try? URL(
+                resolvingBookmarkData: saved.bookmarkData,
+                options: .withSecurityScope,
+                relativeTo: nil,
+                bookmarkDataIsStale: &isStale
+            ) {
+                resolvedURL = url
+            } else if let url = try? URL(
+                resolvingBookmarkData: saved.bookmarkData,
+                options: [.withoutUI],
+                relativeTo: nil,
+                bookmarkDataIsStale: &isStale
+            ) {
+                resolvedURL = url
+            } else {
+                resolvedURL = nil
+            }
+            
+            guard let url = resolvedURL else { continue }
+            
+            // Start accessing the security-scoped resource and keep it alive
+            let accessGranted = url.startAccessingSecurityScopedResource()
+            if accessGranted {
+                activeSecurityURLs.insert(url)
+            }
+            
+            var refreshedBookmark: Data?
+            if isStale {
+                refreshedBookmark = (try? url.bookmarkData(
+                    options: .withSecurityScope,
+                    includingResourceValuesForKeys: nil,
+                    relativeTo: nil
+                )) ?? (try? url.bookmarkData())
+            } else {
+                refreshedBookmark = try? url.bookmarkData(
+                    options: .withSecurityScope,
+                    includingResourceValuesForKeys: nil,
+                    relativeTo: nil
+                )
+            }
+            
+            if let newBookmark = refreshedBookmark, newBookmark != saved.bookmarkData {
+                refreshedSongs[index] = SavedSong(
+                    bookmarkData: newBookmark,
+                    title: saved.title,
+                    artist: saved.artist,
+                    duration: saved.duration
+                )
+                didRefreshBookmarks = true
+            }
+            
+            let isFileAvailable = FileManager.default.fileExists(atPath: url.path)
+            let song = Song(
+                url: url,
+                title: saved.title,
+                artist: saved.artist,
+                duration: saved.duration,
+                isAvailable: isFileAvailable
+            )
+            queue.append(song)
+            if saved.duration > 0 {
+                durationCache[url] = saved.duration
+            }
+            
+            if saved.duration <= 0 {
+                scheduleDurationLoad(for: url, songId: song.id)
+            }
+        }
+        
+        savedSongsCache = refreshedSongs
+        
+        if didRefreshBookmarks {
+            if let activeId = activePlaylistId,
+               let playlistIndex = playlists.firstIndex(where: { $0.id == activeId }) {
+                playlists[playlistIndex].songs = refreshedSongs
+            }
+        }
+    }
+    
+    // MARK: - Multi-Playlist Management
+    
+    func createPlaylist(name: String) {
+        let playlist = Playlist(name: name)
+        playlists.append(playlist)
+        writePlaylistCollection()
+    }
+    
+    func deletePlaylist(id: UUID) {
+        guard let index = playlists.firstIndex(where: { $0.id == id }) else { return }
+        guard !playlists[index].isDefault else { return }
+        
+        playlists.remove(at: index)
+        
+        if activePlaylistId == id {
+            switchPlaylist(to: playlists.first?.id ?? UUID())
+        } else {
+            writePlaylistCollection()
+        }
+    }
+    
+    func renamePlaylist(id: UUID, newName: String) {
+        guard let index = playlists.firstIndex(where: { $0.id == id }) else { return }
+        playlists[index].name = newName
+        playlists[index].updatedAt = Date()
+        writePlaylistCollection()
+    }
+    
+    func switchPlaylist(to playlistId: UUID) {
+        guard let playlist = playlists.first(where: { $0.id == playlistId }) else { return }
+        
+        // Save current playlist state first
+        if let currentId = activePlaylistId,
+           let currentIndex = playlists.firstIndex(where: { $0.id == currentId }) {
+            playlists[currentIndex].songs = buildSavedSongs()
+            playlists[currentIndex].updatedAt = Date()
+        }
+        
+        // Stop playback
+        stopPlayback(resetPosition: true, clearSelection: true)
+        
+        // Clear current queue
+        endAllAccess()
+        queue.removeAll()
+        currentIndex = nil
+        savedSongsCache = []
+        metadataCache = [:]
+        
+        // Switch active playlist
+        activePlaylistId = playlistId
+        
+        // Load new playlist songs
+        loadSongsFromSavedSongs(playlist.songs)
+        
+        writePlaylistCollection()
+    }
+    
+    func addSongsToPlaylist(playlistId: UUID, songs: [Song]) {
+        guard let index = playlists.firstIndex(where: { $0.id == playlistId }) else { return }
+        
+        for song in songs {
+            let needsTemporaryAccess = !activeSecurityURLs.contains(song.url)
+            let accessGranted = needsTemporaryAccess ? song.url.startAccessingSecurityScopedResource() : false
+            defer {
+                if needsTemporaryAccess && accessGranted {
+                    song.url.stopAccessingSecurityScopedResource()
+                }
+            }
+            
+            var bookmarkData: Data?
+            do {
+                bookmarkData = try song.url.bookmarkData(
+                    options: .withSecurityScope,
+                    includingResourceValuesForKeys: nil,
+                    relativeTo: nil
+                )
+            } catch {
+                bookmarkData = try? song.url.bookmarkData()
+            }
+            
+            guard let resolved = bookmarkData else { continue }
+            
+            let saved = SavedSong(
+                bookmarkData: resolved,
+                title: song.title,
+                artist: song.artist,
+                duration: song.duration
+            )
+            playlists[index].songs.append(saved)
+        }
+        playlists[index].updatedAt = Date()
+        writePlaylistCollection()
+    }
+    
+    func removeSongFromPlaylist(playlistId: UUID, at songIndex: Int) {
+        guard let index = playlists.firstIndex(where: { $0.id == playlistId }),
+              songIndex >= 0, songIndex < playlists[index].songs.count else { return }
+        playlists[index].songs.remove(at: songIndex)
+        playlists[index].updatedAt = Date()
+        writePlaylistCollection()
     }
     
     // Remove song from queue

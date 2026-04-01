@@ -114,7 +114,7 @@ struct SettingsPanelView: View {
                 
                 // Footer Info
                 HStack {
-                    Text("v0.3.0 (2026.04.01)")
+                    Text("v0.4.0 (2026.04.01)")
                         .font(.system(size: 10))
                         .foregroundColor(.appTextSecondary)
                     Spacer()

@@ -2,6 +2,32 @@
 
 All notable changes to Wored will be documented in this file.
 
+## [0.4.0] - 2026-04-01 23:00
+
+### Added
+
+- Multiple playlist support with create, rename, and delete operations.
+- Playlist picker in header for switching between playlists.
+- Playlist management menu (folder icon) with context-aware actions.
+- "Add to Playlist" submenu in song context menu for cross-playlist operations.
+- `PlaylistNameSheet` component for create/rename dialogs.
+- `Playlist`, `PlaylistCollection`, `LegacySavedPlaylist` data models.
+- `wored.entitlements` file with `com.apple.security.files.bookmarks.app-scope`.
+- 8 new localization keys for playlist management (TR + EN).
+
+### Changed
+
+- Playlist persistence rewritten to `PlaylistCollection` format (version 2).
+- Legacy single-playlist format auto-migrates to multi-playlist on first load.
+- Default playlist is created automatically on first launch and cannot be deleted.
+- `AudioPlayerViewModel` now manages `playlists` array and `activePlaylistId`.
+- Bookmark resolution in `loadPlaylist` now retains `startAccessingSecurityScopedResource()` access.
+
+### Fixed
+
+- Songs no longer require re-selection via Finder after app restart (sandbox bookmark persistence).
+- Security-scoped resource access now properly retained in `activeSecurityURLs` during playlist load.
+
 ## [0.3.0] - 2026-04-01 20:30
 
 ### Changed

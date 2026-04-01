@@ -45,7 +45,47 @@ struct SavedSong: Codable {
     let duration: TimeInterval
 }
 
-struct SavedPlaylist: Codable {
+// Represents a user-defined playlist
+struct Playlist: Codable, Identifiable, Equatable {
+    let id: UUID
+    var name: String
+    var songs: [SavedSong]
+    var createdAt: Date
+    var updatedAt: Date
+    var isDefault: Bool
+    
+    init(
+        id: UUID = UUID(),
+        name: String,
+        songs: [SavedSong] = [],
+        createdAt: Date = Date(),
+        updatedAt: Date = Date(),
+        isDefault: Bool = false
+    ) {
+        self.id = id
+        self.name = name
+        self.songs = songs
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.isDefault = isDefault
+    }
+    
+    static func == (lhs: Playlist, rhs: Playlist) -> Bool {
+        lhs.id == rhs.id
+    }
+}
+
+// Top-level container for all playlists
+struct PlaylistCollection: Codable {
+    let version: Int
+    var playlists: [Playlist]
+    var activePlaylistId: UUID?
+    var lastPlayedIndex: Int?
+    var lastPlayedPosition: TimeInterval?
+}
+
+// Legacy format for migration
+struct LegacySavedPlaylist: Codable {
     let version: Int
     let songs: [SavedSong]
     let lastPlayedIndex: Int?

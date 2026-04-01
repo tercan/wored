@@ -10,6 +10,12 @@ struct PlaylistView: View {
     @State private var selection: UUID?
     @State private var infoSong: Song?
     @State private var draggingSongId: UUID?
+    @State private var showCreatePlaylist = false
+    @State private var showRenamePlaylist = false
+    @State private var showDeleteConfirm = false
+    @State private var newPlaylistName = ""
+    @State private var renamePlaylistName = ""
+    @State private var targetPlaylistId: UUID?
     
     private var filteredSongs: [Song] {
         viewModel.queue
@@ -19,14 +25,67 @@ struct PlaylistView: View {
         let hasUnavailable = viewModel.queue.contains { !$0.isAvailable }
         
         VStack(spacing: 0) {
-            // Header
+            // Header with playlist picker
             HStack(spacing: 8) {
-                Text(L10n.t(.playlistTitle))
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundColor(.appTextSecondary)
-                    .tracking(1.2)
+                if viewModel.playlists.count > 1 {
+                    Picker("", selection: Binding(
+                        get: { viewModel.activePlaylistId ?? viewModel.playlists.first?.id ?? UUID() },
+                        set: { newId in
+                            viewModel.switchPlaylist(to: newId)
+                        }
+                    )) {
+                        ForEach(viewModel.playlists) { playlist in
+                            Text(playlist.name)
+                                .tag(playlist.id)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .frame(maxWidth: 120)
+                    .labelsHidden()
+                } else {
+                    Text(viewModel.activePlaylist?.name.uppercased() ?? L10n.t(.playlistTitle))
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(.appTextSecondary)
+                        .tracking(1.2)
+                }
                 
                 Spacer()
+                
+                // Playlist management menu
+                Menu {
+                    Button(action: {
+                        newPlaylistName = ""
+                        showCreatePlaylist = true
+                    }) {
+                        Label(L10n.t(.createPlaylist), systemImage: "plus.rectangle.on.folder")
+                    }
+                    
+                    if let active = viewModel.activePlaylist, !active.isDefault {
+                        Divider()
+                        Button(action: {
+                            targetPlaylistId = active.id
+                            renamePlaylistName = active.name
+                            showRenamePlaylist = true
+                        }) {
+                            Label(L10n.t(.renamePlaylist), systemImage: "pencil")
+                        }
+                        Button(role: .destructive, action: {
+                            targetPlaylistId = active.id
+                            showDeleteConfirm = true
+                        }) {
+                            Label(L10n.t(.deletePlaylist), systemImage: "trash")
+                        }
+                    }
+                } label: {
+                    Image(systemName: "folder.badge.gearshape")
+                        .font(.system(size: 11))
+                        .foregroundColor(.appTextSecondary)
+                        .padding(6)
+                        .background(Color.appAccent)
+                        .cornerRadius(4)
+                }
+                .menuStyle(.borderlessButton)
+                .frame(width: 30)
                 
                 TooltippedView(tooltip: L10n.t(.removeMissing)) {
                     Button(action: { viewModel.removeUnavailableSongs() }) {
@@ -70,7 +129,7 @@ struct PlaylistView: View {
                     .keyboardShortcut("o", modifiers: [.command])
                 }
             }
-            .padding(10) // Reduced from 12
+            .padding(10)
             .background(Color.appBackground.opacity(0.95))
             
             Divider().overlay(Color.appDivider)
@@ -211,6 +270,20 @@ struct PlaylistView: View {
                             Button(viewModel.isFavorite(song: song) ? L10n.t(.removeFromFavorites) : L10n.t(.addToFavorites)) {
                                 viewModel.toggleFavorite(song: song)
                             }
+                            
+                            // Add to other playlists
+                            let otherPlaylists = viewModel.playlists.filter { $0.id != viewModel.activePlaylistId }
+                            if !otherPlaylists.isEmpty {
+                                Divider()
+                                Menu(L10n.t(.addToPlaylist)) {
+                                    ForEach(otherPlaylists) { playlist in
+                                        Button(playlist.name) {
+                                            viewModel.addSongsToPlaylist(playlistId: playlist.id, songs: [song])
+                                        }
+                                    }
+                                }
+                            }
+                            
                             Divider()
                             Button(L10n.t(.showInFinder)) {
                                 NSWorkspace.shared.activateFileViewerSelecting([song.url])
@@ -253,6 +326,42 @@ struct PlaylistView: View {
                 dismissButton: .default(Text(L10n.t(.ok)))
             )
         }
+        .sheet(isPresented: $showCreatePlaylist) {
+            PlaylistNameSheet(
+                title: L10n.t(.createPlaylist),
+                name: $newPlaylistName,
+                onSave: {
+                    let trimmed = newPlaylistName.trimmingCharacters(in: .whitespaces)
+                    guard !trimmed.isEmpty else { return }
+                    viewModel.createPlaylist(name: trimmed)
+                    showCreatePlaylist = false
+                },
+                onCancel: { showCreatePlaylist = false }
+            )
+        }
+        .sheet(isPresented: $showRenamePlaylist) {
+            PlaylistNameSheet(
+                title: L10n.t(.renamePlaylist),
+                name: $renamePlaylistName,
+                onSave: {
+                    let trimmed = renamePlaylistName.trimmingCharacters(in: .whitespaces)
+                    guard !trimmed.isEmpty, let id = targetPlaylistId else { return }
+                    viewModel.renamePlaylist(id: id, newName: trimmed)
+                    showRenamePlaylist = false
+                },
+                onCancel: { showRenamePlaylist = false }
+            )
+        }
+        .alert(L10n.t(.deletePlaylist), isPresented: $showDeleteConfirm) {
+            Button(L10n.t(.delete), role: .destructive) {
+                if let id = targetPlaylistId {
+                    viewModel.deletePlaylist(id: id)
+                }
+            }
+            Button(L10n.t(.ok), role: .cancel) {}
+        } message: {
+            Text(L10n.t(.deletePlaylistConfirm))
+        }
     }
     
     // Helper: Format duration to mm:ss
@@ -261,6 +370,38 @@ struct PlaylistView: View {
         let minutes = Int(time) / 60
         let seconds = Int(time) % 60
         return String(format: "%d:%02d", minutes, seconds)
+    }
+}
+
+// MARK: - Playlist Name Sheet
+struct PlaylistNameSheet: View {
+    let title: String
+    @Binding var name: String
+    let onSave: () -> Void
+    let onCancel: () -> Void
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            Text(title)
+                .font(.system(size: 13, weight: .bold))
+                .foregroundColor(.appTextPrimary)
+            
+            TextField(L10n.t(.playlistName), text: $name)
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 200)
+                .onSubmit { onSave() }
+            
+            HStack(spacing: 12) {
+                Button(L10n.t(.ok), role: .cancel, action: onCancel)
+                    .keyboardShortcut(.escape, modifiers: [])
+                Button(L10n.t(.ok), action: onSave)
+                    .keyboardShortcut(.return, modifiers: [])
+                    .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+        }
+        .padding(20)
+        .frame(width: 260)
+        .background(Color.appBackground)
     }
 }
 

@@ -39,6 +39,14 @@ enum L10n {
         case settingsLaunchAtStartup
         case settingsLanguage
         case settingsAbout
+        case newPlaylist
+        case createPlaylist
+        case renamePlaylist
+        case deletePlaylist
+        case deletePlaylistConfirm
+        case playlistName
+        case addToPlaylist
+        case defaultPlaylist
     }
     
     private static let tr: [Key: String] = [
@@ -78,7 +86,15 @@ enum L10n {
         .settingsSystem: "Sistem",
         .settingsLaunchAtStartup: "Başlangıçta aç",
         .settingsLanguage: "Dil",
-        .settingsAbout: "Hakkında"
+        .settingsAbout: "Hakkında",
+        .newPlaylist: "Yeni Liste",
+        .createPlaylist: "Liste Oluştur",
+        .renamePlaylist: "Yeniden Adlandır",
+        .deletePlaylist: "Listeyi Sil",
+        .deletePlaylistConfirm: "Bu listeyi silmek istediğinize emin misiniz?",
+        .playlistName: "Liste Adı",
+        .addToPlaylist: "Listeye Ekle",
+        .defaultPlaylist: "Varsayılan Liste"
     ]
     
     private static let en: [Key: String] = [
@@ -118,7 +134,15 @@ enum L10n {
         .settingsSystem: "System",
         .settingsLaunchAtStartup: "Launch at startup",
         .settingsLanguage: "Language",
-        .settingsAbout: "About"
+        .settingsAbout: "About",
+        .newPlaylist: "New Playlist",
+        .createPlaylist: "Create Playlist",
+        .renamePlaylist: "Rename",
+        .deletePlaylist: "Delete Playlist",
+        .deletePlaylistConfirm: "Are you sure you want to delete this playlist?",
+        .playlistName: "Playlist Name",
+        .addToPlaylist: "Add to Playlist",
+        .defaultPlaylist: "Default Playlist"
     ]
     
     static func t(_ key: Key) -> String {
