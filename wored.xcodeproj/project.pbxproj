@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		CC1083BD2F0922FD003F1210 /* AudioPlayerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC1083BC2F0922FC003F1210 /* AudioPlayerViewModel.swift */; };
-		CCB0A1A22F0B1A0100AA0001 /* Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCB0A1A12F0B1A0100AA0001 /* Localization.swift */; };
 		CC477BD72F09224200662DFD /* woredApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC477BD62F09224200662DFD /* woredApp.swift */; };
 		CC477BD92F09224200662DFD /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC477BD82F09224200662DFD /* ContentView.swift */; };
 		CC477BDB2F09224300662DFD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CC477BDA2F09224300662DFD /* Assets.xcassets */; };
@@ -25,11 +24,11 @@
 		CCA0000BF0000001000A0001 /* MarqueeText.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCA0000BF0000000000A0001 /* MarqueeText.swift */; };
 		CCA0000CF0000001000A0001 /* TooltippedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCA0000CF0000000000A0001 /* TooltippedView.swift */; };
 		CCA0000DF0000001000A0001 /* ScrollableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCA0000DF0000000000A0001 /* ScrollableView.swift */; };
+		CCB0A1A22F0B1A0100AA0001 /* Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCB0A1A12F0B1A0100AA0001 /* Localization.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		CC1083BC2F0922FC003F1210 /* AudioPlayerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlayerViewModel.swift; sourceTree = "<group>"; };
-		CCB0A1A12F0B1A0100AA0001 /* Localization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Localization.swift; sourceTree = "<group>"; };
 		CC477BD32F09224200662DFD /* Wored.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Wored.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CC477BD62F09224200662DFD /* woredApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = woredApp.swift; sourceTree = "<group>"; };
 		CC477BD82F09224200662DFD /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -48,6 +47,7 @@
 		CCA0000CF0000000000A0001 /* TooltippedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TooltippedView.swift; sourceTree = "<group>"; };
 		CCA0000DF0000000000A0001 /* ScrollableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollableView.swift; sourceTree = "<group>"; };
 		CCA0000EF0000000000A0001 /* wored.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = wored.entitlements; sourceTree = "<group>"; };
+		CCB0A1A12F0B1A0100AA0001 /* Localization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Localization.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -366,15 +366,16 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = wored.entitlements;
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "Wored";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "@ Tercan Keskin";
+				INFOPLIST_KEY_CFBundleDisplayName = Wored;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "@ Tercan Keskin";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -392,6 +393,7 @@
 				MARKETING_VERSION = 0.5.0;
 				PRODUCT_BUNDLE_IDENTIFIER = gupse.wored;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -412,15 +414,16 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = wored.entitlements;
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "Wored";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "@ Tercan Keskin";
+				INFOPLIST_KEY_CFBundleDisplayName = Wored;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "@ Tercan Keskin";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -438,6 +441,7 @@
 				MARKETING_VERSION = 0.5.0;
 				PRODUCT_BUNDLE_IDENTIFIER = gupse.wored;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
