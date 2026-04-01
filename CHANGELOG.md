@@ -2,6 +2,16 @@
 
 All notable changes to Wored will be documented in this file.
 
+## [0.5.0] - 2026-04-02 00:50
+
+### Added
+
+- Feature to add songs or folders directly from Finder via drag and drop into the PlaylistView.
+
+### Changed
+
+- Reversed the track information format in the playlist to show "Artist Name • Song Title" instead of "Title • Artist Name" order.
+
 ## [0.4.1] - 2026-04-01 23:20
 
 ### Fixed

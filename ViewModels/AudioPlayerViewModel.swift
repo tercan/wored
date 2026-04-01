@@ -5,6 +5,7 @@ import Combine
 import SwiftUI
 import UniformTypeIdentifiers
 import MediaPlayer
+import ServiceManagement
 
 // Model types are defined in Models/Song.swift and Models/Enums.swift
 
@@ -137,13 +138,26 @@ class AudioPlayerViewModel: NSObject, ObservableObject {
     @Published var appTheme: AppTheme = .system {
         didSet {
             UserDefaults.standard.set(appTheme.rawValue, forKey: themeKey)
+            NSApp.appearance = appTheme.nsAppearance
         }
     }
     
     @Published var launchAtStartup: Bool = false {
         didSet {
             UserDefaults.standard.set(launchAtStartup, forKey: launchAtStartupKey)
-            // TODO: Implement actual SMAppService logic here
+            updateLaunchAtStartup()
+        }
+    }
+    
+    private func updateLaunchAtStartup() {
+        do {
+            if launchAtStartup {
+                try SMAppService.mainApp.register()
+            } else {
+                try SMAppService.mainApp.unregister()
+            }
+        } catch {
+            print("Failed to update launch at startup status: \(error)")
         }
     }
     
@@ -254,6 +268,9 @@ class AudioPlayerViewModel: NSObject, ObservableObject {
         if let rawTheme = UserDefaults.standard.string(forKey: themeKey),
            let theme = AppTheme(rawValue: rawTheme) {
             appTheme = theme
+        }
+        DispatchQueue.main.async {
+            NSApp.appearance = self.appTheme.nsAppearance
         }
         
         launchAtStartup = UserDefaults.standard.bool(forKey: launchAtStartupKey)

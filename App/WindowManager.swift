@@ -246,7 +246,7 @@ class WindowManager: ObservableObject {
         guard let playlist = playlistWindow else { return }
         alignPlaylistBelowPlayer()
         attachPlaylistToPlayer()
-        playlist.makeKeyAndOrderFront(nil)
+        playlist.orderFront(nil)
         isPlaylistVisible = true
         UserDefaults.standard.set(true, forKey: playlistVisibleKey)
     }

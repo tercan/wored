@@ -13,6 +13,7 @@ enum L10n {
         case infoSubtitle
         case errorTitle
         case ok
+        case cancel
         case showInFinder
         case delete
         case info
@@ -61,6 +62,7 @@ enum L10n {
         .infoSubtitle: "macOS için minimal müzik çalar",
         .errorTitle: "Hata",
         .ok: "Tamam",
+        .cancel: "Vazgeç",
         .showInFinder: "Finder'da Göster",
         .delete: "Sil",
         .info: "Bilgi",
@@ -109,6 +111,7 @@ enum L10n {
         .infoSubtitle: "A minimal music player for macOS",
         .errorTitle: "Error",
         .ok: "OK",
+        .cancel: "Cancel",
         .showInFinder: "Show in Finder",
         .delete: "Delete",
         .info: "Info",

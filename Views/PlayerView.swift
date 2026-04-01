@@ -58,7 +58,20 @@ struct PlayerView: View {
                                     )
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     
-                                    InfoPanelButton()
+                                    HStack(spacing: 8) {
+                                        InfoPanelButton()
+                                            
+                                        Button(action: {
+                                            NSApplication.shared.terminate(nil)
+                                        }) {
+                                            Image(systemName: "xmark")
+                                                .font(.system(size: 8, weight: .bold))
+                                                .foregroundColor(.appTextSecondary)
+                                                .frame(width: 12, height: 12)
+                                        }
+                                        .buttonStyle(.plain)
+                                        .focusable(false)
+                                    }
                                 }
                                 
                                 MarqueeText(
@@ -275,7 +288,6 @@ struct PlayerView: View {
                 dismissButton: .default(Text(L10n.t(.ok)))
             )
         }
-        .preferredColorScheme(viewModel.appTheme.colorScheme)
         .id(viewModel.appLanguage) // Re-render when language changes
     }
     

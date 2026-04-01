@@ -16,6 +16,17 @@ struct SettingsPanelView: View {
                     .font(.system(size: 13, weight: .bold))
                     .foregroundColor(.appTextPrimary)
                 Spacer()
+                
+                Button(action: {
+                    InfoPanelController.close()
+                }) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundColor(.appTextSecondary)
+                        .frame(width: 12, height: 12)
+                }
+                .buttonStyle(.plain)
+                .focusable(false)
             }
             .padding(12)
             .padding(.top, 8) // Added extra top spacing
@@ -40,19 +51,15 @@ struct SettingsPanelView: View {
                                 .frame(width: 60, height: 12)
                         }
                     }
+                    .zIndex(2)
                     
                     // EQ
                     SettingsRow(icon: "slider.vertical.3", title: L10n.t(.settingsEQ)) {
-                        Picker("", selection: $viewModel.eqPreset) {
-                            ForEach(EQPreset.allCases, id: \.self) { preset in
-                                Text(preset.displayName).tag(preset)
-                            }
-                        }
-                        .pickerStyle(.menu)
-                        .frame(width: 100)
-                        .labelsHidden()
+                        SquarePicker(selection: $viewModel.eqPreset, items: EQPreset.allCases, displayString: { $0.displayName })
                     }
+                    .zIndex(1)
                 }
+                .zIndex(3)
                 
                 // Interface Section
                 VStack(spacing: 8) {
@@ -60,27 +67,17 @@ struct SettingsPanelView: View {
                     
                     SettingsRow(icon: "uiwindow.split.2x1", title: L10n.t(.settingsAlwaysOnTop)) {
                         Toggle("", isOn: $viewModel.alwaysOnTop)
-                            .toggleStyle(.switch)
-                            .tint(.appHighlight)
+                            .toggleStyle(SquareToggleStyle())
                             .labelsHidden()
-                            .allowsHitTesting(false) // Handle tap on row
                     }
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        viewModel.alwaysOnTop.toggle()
-                    }
+                    .zIndex(2)
                     
                     SettingsRow(icon: "paintpalette", title: L10n.t(.settingsTheme)) {
-                        Picker("", selection: $viewModel.appTheme) {
-                            ForEach(AppTheme.allCases) { theme in
-                                Text(theme.displayName).tag(theme)
-                            }
-                        }
-                        .pickerStyle(.menu)
-                        .frame(width: 100)
-                        .labelsHidden()
+                        SquarePicker(selection: $viewModel.appTheme, items: AppTheme.allCases, displayString: { $0.displayName })
                     }
+                    .zIndex(1)
                 }
+                .zIndex(2)
                 
                 // System Section
                 VStack(spacing: 8) {
@@ -88,27 +85,17 @@ struct SettingsPanelView: View {
                     
                     SettingsRow(icon: "power", title: L10n.t(.settingsLaunchAtStartup)) {
                         Toggle("", isOn: $viewModel.launchAtStartup)
-                            .toggleStyle(.switch)
-                            .tint(.appHighlight)
+                            .toggleStyle(SquareToggleStyle())
                             .labelsHidden()
-                            .allowsHitTesting(false) // Handle tap on row
                     }
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        viewModel.launchAtStartup.toggle()
-                    }
+                    .zIndex(2)
                     
                     SettingsRow(icon: "globe", title: L10n.t(.settingsLanguage)) {
-                        Picker("", selection: $viewModel.appLanguage) {
-                            ForEach(AppLanguage.allCases) { lang in
-                                Text(lang.displayName).tag(lang)
-                            }
-                        }
-                        .pickerStyle(.menu)
-                        .frame(width: 100)
-                        .labelsHidden()
+                        SquarePicker(selection: $viewModel.appLanguage, items: AppLanguage.allCases, displayString: { $0.displayName })
                     }
+                    .zIndex(1)
                 }
+                .zIndex(1)
                 
                 Divider().overlay(Color.appDivider.opacity(0.5))
                 
@@ -171,7 +158,6 @@ struct SettingsRow<Content: View>: View {
         .padding(.vertical, 8)
         .padding(.horizontal, 10)
         .background(Color.appSecondary.opacity(0.5))
-        .cornerRadius(0) // Radiusless
         .overlay(
             Rectangle() // Radiusless border
                 .stroke(Color.appDivider.opacity(0.5), lineWidth: 1)
@@ -184,6 +170,12 @@ final class InfoPanelController: NSObject, NSWindowDelegate {
     private var panel: NSPanel?
     private var keyMonitor: Any?
     private var clickMonitor: Any?
+    
+    static func close() {
+        shared.panel?.orderOut(nil)
+        shared.stopKeyMonitor()
+        shared.stopClickMonitor()
+    }
     
     func toggle(relativeTo anchor: NSView) {
         if let panel, panel.isVisible {
@@ -303,18 +295,18 @@ struct InfoPanelButton: NSViewRepresentable {
         button.bezelStyle = .regularSquare
         button.isBordered = false
         button.image = NSImage(systemSymbolName: "gearshape", accessibilityDescription: nil)
-        button.image?.size = NSSize(width: 10, height: 10)
+        button.image?.size = NSSize(width: 8, height: 8)
         button.contentTintColor = .appHighlight
         button.target = context.coordinator
         button.action = #selector(Coordinator.clicked(_:))
         button.wantsLayer = true
         button.layer?.backgroundColor = NSColor.clear.cgColor
-        button.frame = NSRect(x: 0, y: 0, width: 18, height: 18)
+        button.frame = NSRect(x: 0, y: 0, width: 12, height: 12)
         button.imageScaling = .scaleProportionallyDown
         button.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            button.widthAnchor.constraint(equalToConstant: 18),
-            button.heightAnchor.constraint(equalToConstant: 18)
+            button.widthAnchor.constraint(equalToConstant: 12),
+            button.heightAnchor.constraint(equalToConstant: 12)
         ])
         button.imagePosition = .imageOnly
         return button
@@ -329,6 +321,111 @@ struct InfoPanelButton: NSViewRepresentable {
     final class Coordinator: NSObject {
         @objc func clicked(_ sender: NSButton) {
             InfoPanelController.shared.toggle(relativeTo: sender)
+        }
+    }
+}
+
+// MARK: - Square Picker
+struct SquarePicker<T: Hashable & Equatable>: View {
+    @Binding var selection: T
+    let items: [T]
+    let displayString: (T) -> String
+    @State private var isOpen = false
+    
+    var body: some View {
+        Button(action: {
+            withAnimation(.easeInOut(duration: 0.1)) {
+                isOpen.toggle()
+            }
+        }) {
+            HStack {
+                Text(displayString(selection))
+                    .font(.system(size: 11))
+                    .foregroundColor(.appTextPrimary)
+                    .lineLimit(1)
+                Spacer()
+                Image(systemName: isOpen ? "chevron.up" : "chevron.down")
+                    .font(.system(size: 9))
+                    .foregroundColor(.appTextSecondary)
+            }
+            .padding(.horizontal, 6)
+            .frame(height: 18)
+            .background(Color.appBackground)
+            .border(Color.appDivider, width: 1)
+        }
+        .buttonStyle(.plain)
+        .overlay(
+            Group {
+                if isOpen {
+                    VStack(spacing: 0) {
+                        ForEach(items, id: \.self) { item in
+                            Button(action: {
+                                selection = item
+                                withAnimation(.easeInOut(duration: 0.1)) {
+                                    isOpen = false
+                                }
+                            }) {
+                                HStack {
+                                    Text(displayString(item))
+                                        .font(.system(size: 11))
+                                        .foregroundColor(selection == item ? .appHighlightText : .appTextPrimary)
+                                        .padding(.leading, 6)
+                                    Spacer()
+                                    if selection == item {
+                                        Image(systemName: "checkmark")
+                                            .font(.system(size: 9, weight: .bold))
+                                            .foregroundColor(.appHighlight)
+                                            .padding(.trailing, 6)
+                                    }
+                                }
+                                .frame(height: 20)
+                                .background(selection == item ? Color.appSecondary : Color.appBackground)
+                            }
+                            .buttonStyle(.plain)
+                            .contentShape(Rectangle())
+                            // Provide hover effect
+                            .onHover { isHover in
+                                if isHover && selection != item {
+                                    NSCursor.pointingHand.push()
+                                } else {
+                                    NSCursor.pop()
+                                }
+                            }
+                        }
+                    }
+                    .background(Color.appBackground)
+                    .border(Color.appDivider, width: 1)
+                    .offset(y: 19)
+                }
+            },
+            alignment: .top
+        )
+        .frame(width: 100)
+    }
+}
+
+// MARK: - Square Toggle Style
+struct SquareToggleStyle: ToggleStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack {
+            configuration.label
+            Spacer()
+            Rectangle()
+                .fill(configuration.isOn ? Color.appHighlight : Color.appBackground)
+                .border(Color.appDivider, width: 1)
+                .frame(width: 32, height: 16)
+                .overlay(
+                    Rectangle()
+                        .fill(configuration.isOn ? Color.appBackground : Color.appTextSecondary)
+                        .frame(width: 14, height: 14)
+                        .padding(1),
+                    alignment: configuration.isOn ? .trailing : .leading
+                )
+                .onTapGesture {
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        configuration.isOn.toggle()
+                    }
+                }
         }
     }
 }
