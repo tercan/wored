@@ -2,6 +2,29 @@
 
 All notable changes to Wored will be documented in this file.
 
+## [0.3.0] - 2026-04-01 20:30
+
+### Changed
+
+- Refactored monolithic codebase into modular architecture (4 files to 17 files).
+- Extracted `Song`, `SavedSong`, `SavedPlaylist`, `PlayerError`, `CachedMetadata` into `Models/Song.swift`.
+- Extracted `RepeatMode`, `EQPreset`, `AppTheme`, `AppLanguage` into `Models/Enums.swift`.
+- Extracted Color/NSColor palette into `Extensions/Color+App.swift`.
+- Extracted `WindowManager` into `App/WindowManager.swift`.
+- Extracted `PlayerWindowAccessor`, `PlaylistWindowAccessor` into `App/WindowAccessors.swift`.
+- Extracted `PlayerView` into `Views/PlayerView.swift`.
+- Extracted `PlaylistView`, `SongDropDelegate` into `Views/PlaylistView.swift`.
+- Extracted `SettingsPanelView`, `SectionHeader`, `SettingsRow`, `InfoPanelController`, `InfoPanelButton` into `Views/SettingsPanelView.swift`.
+- Extracted `MenuBarView` into `Views/MenuBarView.swift`.
+- Extracted `SquareSlider`, `TrackingSlider`, `SquareSliderCell` into `Views/Components/SquareSlider.swift`.
+- Extracted `MarqueeText` into `Views/Components/MarqueeText.swift`.
+- Extracted `TooltippedView` into `Views/Components/TooltippedView.swift`.
+- Extracted `ScrollableView`, `PopoverWindowAccessor` into `Views/Components/ScrollableView.swift`.
+- Moved `Localization.swift` into `Localization/` directory.
+- Slimmed `woredApp.swift` to App entry point only (45 lines).
+- Removed model/enum definitions from `AudioPlayerViewModel.swift` (1604 to 1479 lines).
+- Updated Xcode project structure to reflect new file organization.
+
 ## [0.2.0] - 2026-02-08
 
 ### Added

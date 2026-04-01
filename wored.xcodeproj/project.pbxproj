@@ -12,6 +12,19 @@
 		CC477BD72F09224200662DFD /* woredApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC477BD62F09224200662DFD /* woredApp.swift */; };
 		CC477BD92F09224200662DFD /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC477BD82F09224200662DFD /* ContentView.swift */; };
 		CC477BDB2F09224300662DFD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CC477BDA2F09224300662DFD /* Assets.xcassets */; };
+		CCA00001F0000001000A0001 /* Song.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCA00001F0000000000A0001 /* Song.swift */; };
+		CCA00002F0000001000A0001 /* Enums.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCA00002F0000000000A0001 /* Enums.swift */; };
+		CCA00003F0000001000A0001 /* Color+App.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCA00003F0000000000A0001 /* Color+App.swift */; };
+		CCA00004F0000001000A0001 /* WindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCA00004F0000000000A0001 /* WindowManager.swift */; };
+		CCA00005F0000001000A0001 /* WindowAccessors.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCA00005F0000000000A0001 /* WindowAccessors.swift */; };
+		CCA00006F0000001000A0001 /* PlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCA00006F0000000000A0001 /* PlayerView.swift */; };
+		CCA00007F0000001000A0001 /* PlaylistView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCA00007F0000000000A0001 /* PlaylistView.swift */; };
+		CCA00008F0000001000A0001 /* SettingsPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCA00008F0000000000A0001 /* SettingsPanelView.swift */; };
+		CCA00009F0000001000A0001 /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCA00009F0000000000A0001 /* MenuBarView.swift */; };
+		CCA0000AF0000001000A0001 /* SquareSlider.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCA0000AF0000000000A0001 /* SquareSlider.swift */; };
+		CCA0000BF0000001000A0001 /* MarqueeText.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCA0000BF0000000000A0001 /* MarqueeText.swift */; };
+		CCA0000CF0000001000A0001 /* TooltippedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCA0000CF0000000000A0001 /* TooltippedView.swift */; };
+		CCA0000DF0000001000A0001 /* ScrollableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCA0000DF0000000000A0001 /* ScrollableView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -21,6 +34,19 @@
 		CC477BD62F09224200662DFD /* woredApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = woredApp.swift; sourceTree = "<group>"; };
 		CC477BD82F09224200662DFD /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		CC477BDA2F09224300662DFD /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		CCA00001F0000000000A0001 /* Song.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Song.swift; sourceTree = "<group>"; };
+		CCA00002F0000000000A0001 /* Enums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Enums.swift; sourceTree = "<group>"; };
+		CCA00003F0000000000A0001 /* Color+App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+App.swift"; sourceTree = "<group>"; };
+		CCA00004F0000000000A0001 /* WindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowManager.swift; sourceTree = "<group>"; };
+		CCA00005F0000000000A0001 /* WindowAccessors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowAccessors.swift; sourceTree = "<group>"; };
+		CCA00006F0000000000A0001 /* PlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerView.swift; sourceTree = "<group>"; };
+		CCA00007F0000000000A0001 /* PlaylistView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaylistView.swift; sourceTree = "<group>"; };
+		CCA00008F0000000000A0001 /* SettingsPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsPanelView.swift; sourceTree = "<group>"; };
+		CCA00009F0000000000A0001 /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
+		CCA0000AF0000000000A0001 /* SquareSlider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SquareSlider.swift; sourceTree = "<group>"; };
+		CCA0000BF0000000000A0001 /* MarqueeText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarqueeText.swift; sourceTree = "<group>"; };
+		CCA0000CF0000000000A0001 /* TooltippedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TooltippedView.swift; sourceTree = "<group>"; };
+		CCA0000DF0000000000A0001 /* ScrollableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollableView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -39,10 +65,12 @@
 			children = (
 				CC477BD42F09224200662DFD /* Products */,
 				CC477BDA2F09224300662DFD /* Assets.xcassets */,
-				CC477BD82F09224200662DFD /* ContentView.swift */,
-				CC1083BC2F0922FC003F1210 /* AudioPlayerViewModel.swift */,
-				CC477BD62F09224200662DFD /* woredApp.swift */,
-				CCB0A1A12F0B1A0100AA0001 /* Localization.swift */,
+				CCA0GRP1F0000000000A0001 /* App */,
+				CCA0GRP2F0000000000A0001 /* Models */,
+				CCA0GRP3F0000000000A0001 /* ViewModels */,
+				CCA0GRP4F0000000000A0001 /* Views */,
+				CCA0GRP5F0000000000A0001 /* Extensions */,
+				CCA0GRP6F0000000000A0001 /* Localization */,
 			);
 			sourceTree = "<group>";
 		};
@@ -52,6 +80,73 @@
 				CC477BD32F09224200662DFD /* Wored.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		CCA0GRP1F0000000000A0001 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				CC477BD62F09224200662DFD /* woredApp.swift */,
+				CCA00004F0000000000A0001 /* WindowManager.swift */,
+				CCA00005F0000000000A0001 /* WindowAccessors.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		CCA0GRP2F0000000000A0001 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				CCA00001F0000000000A0001 /* Song.swift */,
+				CCA00002F0000000000A0001 /* Enums.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		CCA0GRP3F0000000000A0001 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				CC1083BC2F0922FC003F1210 /* AudioPlayerViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		CCA0GRP4F0000000000A0001 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				CC477BD82F09224200662DFD /* ContentView.swift */,
+				CCA00006F0000000000A0001 /* PlayerView.swift */,
+				CCA00007F0000000000A0001 /* PlaylistView.swift */,
+				CCA00008F0000000000A0001 /* SettingsPanelView.swift */,
+				CCA00009F0000000000A0001 /* MenuBarView.swift */,
+				CCA0GRP7F0000000000A0001 /* Components */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		CCA0GRP5F0000000000A0001 /* Extensions */ = {
+			isa = PBXGroup;
+			children = (
+				CCA00003F0000000000A0001 /* Color+App.swift */,
+			);
+			path = Extensions;
+			sourceTree = "<group>";
+		};
+		CCA0GRP6F0000000000A0001 /* Localization */ = {
+			isa = PBXGroup;
+			children = (
+				CCB0A1A12F0B1A0100AA0001 /* Localization.swift */,
+			);
+			path = Localization;
+			sourceTree = "<group>";
+		};
+		CCA0GRP7F0000000000A0001 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				CCA0000AF0000000000A0001 /* SquareSlider.swift */,
+				CCA0000BF0000000000A0001 /* MarqueeText.swift */,
+				CCA0000CF0000000000A0001 /* TooltippedView.swift */,
+				CCA0000DF0000000000A0001 /* ScrollableView.swift */,
+			);
+			path = Components;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -130,6 +225,19 @@
 				CCB0A1A22F0B1A0100AA0001 /* Localization.swift in Sources */,
 				CC477BD92F09224200662DFD /* ContentView.swift in Sources */,
 				CC477BD72F09224200662DFD /* woredApp.swift in Sources */,
+				CCA00001F0000001000A0001 /* Song.swift in Sources */,
+				CCA00002F0000001000A0001 /* Enums.swift in Sources */,
+				CCA00003F0000001000A0001 /* Color+App.swift in Sources */,
+				CCA00004F0000001000A0001 /* WindowManager.swift in Sources */,
+				CCA00005F0000001000A0001 /* WindowAccessors.swift in Sources */,
+				CCA00006F0000001000A0001 /* PlayerView.swift in Sources */,
+				CCA00007F0000001000A0001 /* PlaylistView.swift in Sources */,
+				CCA00008F0000001000A0001 /* SettingsPanelView.swift in Sources */,
+				CCA00009F0000001000A0001 /* MenuBarView.swift in Sources */,
+				CCA0000AF0000001000A0001 /* SquareSlider.swift in Sources */,
+				CCA0000BF0000001000A0001 /* MarqueeText.swift in Sources */,
+				CCA0000CF0000001000A0001 /* TooltippedView.swift in Sources */,
+				CCA0000DF0000001000A0001 /* ScrollableView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -278,7 +386,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.2;
-				MARKETING_VERSION = 0.1.1;
+				MARKETING_VERSION = 0.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = gupse.wored;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -323,7 +431,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.2;
-				MARKETING_VERSION = 0.1.1;
+				MARKETING_VERSION = 0.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = gupse.wored;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;

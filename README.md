@@ -35,4 +35,4 @@ A minimal music player for macOS built with SwiftUI.
 
 ## Version
 
-0.2.0
+0.3.0
