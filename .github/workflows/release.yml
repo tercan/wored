@@ -22,10 +22,21 @@ jobs:
   release:
     runs-on: macos-26
     timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: source
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
+        name: Check out release tools
+        with:
+          ref: ${{ github.sha }}
+          path: release-tools
+          persist-credentials: false
+      - uses: actions/checkout@v7.0.1
+        name: Check out immutable release source
         with:
           ref: ${{ github.event.inputs.tag || github.ref }}
+          path: source
           fetch-depth: 0
           persist-credentials: false
       - name: Validate release tag
@@ -36,12 +47,15 @@ jobs:
           [[ "$(git rev-parse "$RELEASE_TAG^{commit}")" == "$(git rev-parse HEAD)" ]]
           echo "RELEASE_VERSION=${RELEASE_TAG#v}" >> "$GITHUB_ENV"
       - name: Test and package
+        env:
+          WORED_SOURCE_ROOT: ${{ github.workspace }}/source
         run: |
-          for script in scripts/*.sh; do bash -n "$script"; done
+          for script in "$GITHUB_WORKSPACE"/release-tools/scripts/*.sh; do bash -n "$script"; done
           git diff --check
-          bash scripts/package-release.sh "$RELEASE_VERSION"
+          bash "$GITHUB_WORKSPACE/release-tools/scripts/package-release.sh" "$RELEASE_VERSION"
       - name: Publish release and downloads
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-        run: bash scripts/publish-release.sh "$RELEASE_VERSION"
+          WORED_SOURCE_ROOT: ${{ github.workspace }}/source
+        run: bash "$GITHUB_WORKSPACE/release-tools/scripts/publish-release.sh" "$RELEASE_VERSION"

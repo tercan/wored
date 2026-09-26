@@ -66,6 +66,8 @@ GH_REPO=tercan/wored bash scripts/publish-release.sh 0.7.0
 
 Bu komut mevcut etiketi ve paket sürümünü doğrular; paketleme için önce package-release.sh çalıştırılmalıdır. Etiketler başka commit'lere taşınmaz. GitHub workflow_dispatch ile mevcut bir etiketi yeniden paketleyip yayımlamak da mümkündür.
 
+Yayın akışı etiketli uygulama kaynağını ve çalışmayı başlatan commit'teki yayın araçlarını ayrı checkout'larda tutar. Böylece paketleme aracı düzeltmeleri, eski sürüm etiketlerini veya uygulama kaynağını değiştirmeden kullanılabilir.
+
 ## Sürüm
 
 0.7.0

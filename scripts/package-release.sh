@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-root=$(cd "$(dirname "$0")/.." && pwd)
+root=${WORED_SOURCE_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}
 cd "$root"
 version=${1:?Usage: bash scripts/package-release.sh X.Y.Z}
 [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { printf 'Invalid release version\n' >&2; exit 1; }
@@ -26,7 +26,7 @@ actual=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Co
 minimum_macos=$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$app/Contents/Info.plist")
 [[ "$actual" == "$version" ]] || { printf 'Bundle version differs from requested release\n' >&2; exit 1; }
 codesign --verify --deep --strict "$app"
-lipo -verify_arch arm64 "$app/Contents/MacOS/Wored"
+lipo "$app/Contents/MacOS/Wored" -verify_arch arm64
 
 output="$root/dist/releases/$version"
 mkdir -p "$output" "$work/dmg" "$work/current"

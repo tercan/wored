@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-root=$(cd "$(dirname "$0")/.." && pwd)
+root=${WORED_SOURCE_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}
 cd "$root"
 version=${1:?Usage: GH_REPO=owner/repo bash scripts/publish-release.sh X.Y.Z}
 [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { printf 'Invalid release version\n' >&2; exit 1; }
