@@ -9,13 +9,17 @@ struct SettingsPanelView: View {
         VStack(alignment: .leading, spacing: 0) {
             // Header
             HStack(spacing: 6) {
-                Image(systemName: "gearshape.fill")
-                    .font(.system(size: 12))
-                    .foregroundColor(.appHighlight)
-                Text(L10n.t(.settings))
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(.appTextPrimary)
-                Spacer()
+                HStack(spacing: 6) {
+                    Image(systemName: "gearshape.fill")
+                        .font(.system(size: 12))
+                        .foregroundColor(.appHighlightText)
+                    Text(L10n.t(.settings))
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.appTextPrimary)
+                    Spacer()
+                }
+                .contentShape(Rectangle())
+                .gesture(WindowDragGesture())
                 
                 Button(action: {
                     InfoPanelController.close()
@@ -29,8 +33,11 @@ struct SettingsPanelView: View {
                 .focusable(false)
             }
             .padding(12)
-            .padding(.top, 8) // Added extra top spacing
-            .background(Color.appSecondary)
+            .background {
+                Color.appSecondary
+                    .contentShape(Rectangle())
+                    .gesture(WindowDragGesture())
+            }
             
             Divider().overlay(Color.appDivider)
             
@@ -101,7 +108,7 @@ struct SettingsPanelView: View {
                 
                 // Footer Info
                 HStack {
-                    Text("v0.6.0 (2026.04.28)")
+                    Text("v\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? L10n.t(.unknownValue))")
                         .font(.system(size: 10))
                         .foregroundColor(.appTextSecondary)
                     Spacer()
@@ -172,6 +179,7 @@ final class InfoPanelController: NSObject, NSWindowDelegate {
     private var clickMonitor: Any?
     
     static func close() {
+        if let panel = shared.panel { panel.saveFrame(usingName: PanelFramePersistence.settings) }
         shared.panel?.orderOut(nil)
         shared.stopKeyMonitor()
         shared.stopClickMonitor()
@@ -179,9 +187,7 @@ final class InfoPanelController: NSObject, NSWindowDelegate {
     
     func toggle(relativeTo anchor: NSView) {
         if let panel, panel.isVisible {
-            panel.orderOut(nil)
-            stopKeyMonitor()
-            stopClickMonitor()
+            Self.close()
             return
         }
         show(relativeTo: anchor)
@@ -193,13 +199,15 @@ final class InfoPanelController: NSObject, NSWindowDelegate {
     }
     
     private func show(relativeTo anchor: NSView) {
-        let panel = NSPanel(
+        let panel = SettingsPanelWindow(
             contentRect: NSRect(x: 0, y: 0, width: 280, height: 460),
             styleMask: [.borderless],
             backing: .buffered,
             defer: false
         )
         panel.isReleasedWhenClosed = false
+        panel.minSize = NSSize(width: 280, height: 460)
+        panel.maxSize = panel.minSize
         panel.hasShadow = false
         panel.isOpaque = true
         panel.backgroundColor = .clear // Transparent background for custom view background
@@ -209,6 +217,8 @@ final class InfoPanelController: NSObject, NSWindowDelegate {
         panel.titleVisibility = .hidden
         panel.titlebarAppearsTransparent = true
         panel.isMovableByWindowBackground = true
+        panel.isMovable = true
+        panel.identifier = .woredSettingsPanel
         panel.delegate = self
         
         let hostingView = NSHostingView(rootView: SettingsPanelView().environmentObject(AudioPlayerViewModel.shared))
@@ -218,7 +228,7 @@ final class InfoPanelController: NSObject, NSWindowDelegate {
         hostingView.layer?.backgroundColor = NSColor.clear.cgColor
         panel.contentView = hostingView
         
-        if let window = anchor.window {
+        if !PanelFramePersistence.restore(panel, name: PanelFramePersistence.settings, preferredScreen: anchor.window?.screen), let window = anchor.window {
             let windowFrame = window.frame
             let panelWidth: CGFloat = 280
             let panelHeight: CGFloat = 460
@@ -239,29 +249,31 @@ final class InfoPanelController: NSObject, NSWindowDelegate {
             
             panel.setFrameOrigin(NSPoint(x: x, y: y))
         }
+        PanelFramePersistence.constrain(panel, preferredScreen: anchor.window?.screen)
         
-        panel.orderFrontRegardless()
         self.panel = panel
+        panel.makeKeyAndOrderFront(nil)
         startKeyMonitor()
         startClickMonitor()
     }
     
     func windowDidResignKey(_ notification: Notification) {
-        panel?.orderOut(nil)
-        stopKeyMonitor()
-        stopClickMonitor()
+        Self.close()
+    }
+
+    func windowDidMove(_ notification: Notification) {
+        guard let movedPanel = notification.object as? NSPanel, movedPanel.isVisible else { return }
+        movedPanel.saveFrame(usingName: PanelFramePersistence.settings)
     }
     
     private func startKeyMonitor() {
         stopKeyMonitor()
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            guard let self else { return event }
-            if event.keyCode == 53 { // ESC
-                self.panel?.orderOut(nil)
-                self.stopKeyMonitor()
-                return nil
-            }
-            return event
+            guard let panel = self?.panel, panel.isVisible,
+                  NSApp.keyWindow === panel, event.window === panel,
+                  PanelCloseShortcut.matches(event) else { return event }
+            Self.close()
+            return nil
         }
     }
     
@@ -279,9 +291,7 @@ final class InfoPanelController: NSObject, NSWindowDelegate {
             if event.window === panel {
                 return event
             }
-            panel.orderOut(nil)
-            self.stopKeyMonitor()
-            self.stopClickMonitor()
+            Self.close()
             return event
         }
     }
@@ -294,6 +304,11 @@ final class InfoPanelController: NSObject, NSWindowDelegate {
     }
 }
 
+private final class SettingsPanelWindow: NSPanel {
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { false }
+}
+
 struct InfoPanelButton: NSViewRepresentable {
     func makeNSView(context: Context) -> NSButton {
         let button = NSButton()
@@ -301,7 +316,7 @@ struct InfoPanelButton: NSViewRepresentable {
         button.isBordered = false
         button.image = NSImage(systemSymbolName: "gearshape", accessibilityDescription: nil)
         button.image?.size = NSSize(width: 8, height: 8)
-        button.contentTintColor = .appHighlight
+        button.contentTintColor = .appControlDefault
         button.target = context.coordinator
         button.action = #selector(Coordinator.clicked(_:))
         button.wantsLayer = true

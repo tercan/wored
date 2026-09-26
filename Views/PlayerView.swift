@@ -43,6 +43,8 @@ struct PlayerView: View {
                             }
                         }
                         .frame(width: 56, height: 56, alignment: .topLeading)
+                        .contentShape(Rectangle())
+                        .gesture(WindowDragGesture())
                         
                         VStack(alignment: .leading, spacing: 4) {
                             VStack(alignment: .leading, spacing: 2) {
@@ -56,20 +58,25 @@ struct PlayerView: View {
                                         spacing: 24
                                     )
                                     .frame(maxWidth: .infinity, alignment: .leading)
+                                    .contentShape(Rectangle())
+                                    .gesture(WindowDragGesture())
                                     
                                     HStack(spacing: 8) {
                                         InfoPanelButton()
                                             
                                         Button(action: {
-                                            NSApplication.shared.terminate(nil)
+                                            windowManager.hidePlayerWindows()
                                         }) {
                                             Image(systemName: "xmark")
                                                 .font(.system(size: 8, weight: .bold))
                                                 .foregroundColor(.appTextSecondary)
                                                 .frame(width: 12, height: 12)
+                                                .contentShape(Rectangle())
                                         }
                                         .buttonStyle(.plain)
                                         .focusable(false)
+                                        .help(L10n.t(.hidePlayer))
+                                        .accessibilityLabel(L10n.t(.hidePlayer))
                                     }
                                 }
                                 
@@ -82,6 +89,8 @@ struct PlayerView: View {
                                     spacing: 24
                                 )
                                 .frame(maxWidth: .infinity, alignment: .leading)
+                                .contentShape(Rectangle())
+                                .gesture(WindowDragGesture())
                             }
                             
                             VStack(spacing: 2) {
@@ -121,18 +130,13 @@ struct PlayerView: View {
                         }
                     }
                     
-                    GeometryReader { geo in
-                        let totalWidth = geo.size.width
-                        let controlsWidth = totalWidth * 0.8
-                        let actionsWidth = max(totalWidth * 0.2 - 8, 0)
-                        
-                        HStack(spacing: 8) {
-                            HStack(spacing: 6) {
+                        HStack(spacing: 4) {
                             Button(action: { viewModel.previousSong() }) {
                                 Image(systemName: "backward.end.fill")
                                     .font(.system(size: 11))
                                     .foregroundColor(.appControlDefault)
-                                    .frame(width: 18, height: 18)
+                                    .frame(width: 24, height: 24)
+                                    .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
                             .focusable(false)
@@ -140,28 +144,31 @@ struct PlayerView: View {
                             .overlay(
                                 Rectangle()
                                     .stroke(Color.appControlDefault.opacity(0.3), lineWidth: 1)
+                                    .allowsHitTesting(false)
                             )
                             
                             Button(action: { viewModel.togglePlayPause() }) {
                                 Image(systemName: viewModel.isPlaying ? "pause.fill" : "play.fill")
                                     .font(.system(size: 14))
                                     .foregroundColor(viewModel.isPlaying ? .appControlActive : .appControlDefault)
-                                    .frame(width: 18, height: 18)
+                                    .frame(width: 24, height: 24)
+                                    .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
                             .focusable(false)
-                            .keyboardShortcut(.space, modifiers: [])
                             .contentShape(Rectangle())
                             .overlay(
                                 Rectangle()
                                     .stroke(Color.appControlDefault.opacity(0.3), lineWidth: 1)
+                                    .allowsHitTesting(false)
                             )
                             
                             Button(action: { viewModel.nextSong() }) {
                                 Image(systemName: "forward.end.fill")
                                     .font(.system(size: 11))
                                     .foregroundColor(.appControlDefault)
-                                    .frame(width: 18, height: 18)
+                                    .frame(width: 24, height: 24)
+                                    .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
                             .focusable(false)
@@ -169,13 +176,15 @@ struct PlayerView: View {
                             .overlay(
                                 Rectangle()
                                     .stroke(Color.appControlDefault.opacity(0.3), lineWidth: 1)
+                                    .allowsHitTesting(false)
                             )
                             
                             Button(action: { viewModel.toggleShuffle() }) {
                                 Image(systemName: "shuffle")
                                     .font(.system(size: 11))
                                     .foregroundColor(viewModel.isShuffled ? .appControlActive : .appControlDefault)
-                                    .frame(width: 18, height: 18)
+                                    .frame(width: 24, height: 24)
+                                    .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
                             .focusable(false)
@@ -183,13 +192,15 @@ struct PlayerView: View {
                             .overlay(
                                 Rectangle()
                                     .stroke(Color.appControlDefault.opacity(0.3), lineWidth: 1)
+                                    .allowsHitTesting(false)
                             )
                             
                             Button(action: { viewModel.cycleRepeatMode() }) {
                                 Image(systemName: repeatIcon)
                                     .font(.system(size: 11))
                                     .foregroundColor(repeatIsActive ? .appControlActive : .appControlDefault)
-                                    .frame(width: 18, height: 18)
+                                    .frame(width: 24, height: 24)
+                                    .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
                             .focusable(false)
@@ -197,13 +208,15 @@ struct PlayerView: View {
                             .overlay(
                                 Rectangle()
                                     .stroke(Color.appControlDefault.opacity(0.3), lineWidth: 1)
+                                    .allowsHitTesting(false)
                             )
                             
                             Button(action: { viewModel.cyclePlaybackSpeed() }) {
                                 Text(viewModel.playbackSpeedText)
                                     .font(.system(size: 9, weight: .medium, design: .monospaced))
                                     .foregroundColor(viewModel.playbackRate != 1.0 ? .appControlActive : .appControlDefault)
-                                    .frame(width: 24, height: 18)
+                                    .frame(width: 24, height: 24)
+                                    .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
                             .focusable(false)
@@ -211,12 +224,15 @@ struct PlayerView: View {
                             .overlay(
                                 Rectangle()
                                     .stroke(Color.appControlDefault.opacity(0.3), lineWidth: 1)
+                                    .allowsHitTesting(false)
                             )
                             
                             Button(action: { viewModel.toggleMute() }) {
                                 Image(systemName: viewModel.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
                                     .font(.system(size: 11))
                                     .foregroundColor(viewModel.isMuted ? .appControlActive : .appControlDefault)
+                                    .frame(width: 24, height: 24)
+                                    .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
                             .focusable(false)
@@ -229,43 +245,42 @@ struct PlayerView: View {
                                 range: 0...1,
                                 knobSize: 10
                             )
-                            .padding(.leading, 6)
-                            .frame(width: 80, height: 12)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 24)
                             .focusable(false)
-                        }
-                            .frame(width: controlsWidth, alignment: .leading)
-                            
-                        HStack {
                             Button(action: {
-                                windowManager.togglePlaylist(openWindow: { openWindow(id: "playlist") })
+                                windowManager.togglePlaylist()
                             }) {
                                 Image(systemName: windowManager.isPlaylistVisible ? "list.bullet.rectangle.fill" : "list.bullet")
                                     .font(.system(size: 10, weight: .semibold))
-                                    .foregroundColor(.appTextSecondary)
-                                    .padding(4)
-                                    .background(Color.appSecondary)
+                                    .foregroundColor(windowManager.isPlaylistVisible ? .appControlActive : .appControlDefault)
+                                    .frame(width: 24, height: 24)
+                                    .background(windowManager.isPlaylistVisible ? Color.appAccent : Color.appSecondary)
+                                    .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
                             .focusable(false)
                             .keyboardShortcut("l", modifiers: [.command])
                             .help(L10n.t(.playlist))
                         }
-                        .frame(width: actionsWidth, alignment: .trailing)
-                        }
-                    }
-                    .frame(height: 20)
+                    .frame(height: 24)
                 }
         .padding(5)
-        .onChange(of: viewModel.alwaysOnTop) { newValue in
+        .onChange(of: viewModel.alwaysOnTop) { _, newValue in
             WindowManager.shared.playerWindow?.level = newValue ? .floating : .normal
         }
-        .background(Color.appBackground)
+        .background {
+            Color.appBackground
+                .contentShape(Rectangle())
+                .gesture(WindowDragGesture())
+        }
         .background(shortcutButtons)
         .frame(width: 300)
         .onAppear {
+            MenuBarController.shared.openWindow = { id in openWindow(id: id) }
             guard !didRestorePlaylist else { return }
             didRestorePlaylist = true
-            windowManager.restorePlaylistIfNeeded(openWindow: { openWindow(id: "playlist") })
+            windowManager.restorePlaylistIfNeeded()
         }
         .onMoveCommand { direction in
             switch direction {

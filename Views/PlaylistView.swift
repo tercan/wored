@@ -44,9 +44,11 @@ struct PlaylistView: View {
     @State private var renamePlaylistName = ""
     @State private var targetPlaylistId: UUID?
     @State private var isFileDropTarget = false
+    @State private var isSearchVisible = false
     @State private var searchText = ""
     @State private var contentMode: PlaylistContentMode = .playlist
-    @FocusState private var isSearchFocused: Bool
+    @State private var isSearchFocused = false
+    @State private var searchFocusRequest = 0
 
     private var trimmedSearchText: String {
         searchText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -116,185 +118,24 @@ struct PlaylistView: View {
         }
     }
 
+    private var activePlaylistName: String {
+        viewModel.activePlaylist?.name ?? L10n.t(.playlist)
+    }
+
+    private var clearTooltip: String {
+        switch contentMode {
+        case .playlist: return L10n.t(.clearPlaylist)
+        case .favorites: return L10n.t(.clearFavorites)
+        case .history: return L10n.t(.clearHistoryTitle)
+        }
+    }
+
     var body: some View {
         let hasUnavailable = viewModel.queue.contains { !$0.isAvailable }
         let isSearchEmpty = isFiltering && filteredSongs.isEmpty && !contentSongs.isEmpty
 
         VStack(spacing: 0) {
-            // Header Actions Row
-            HStack(spacing: 8) {
-                Text(L10n.t(.playlistTitle).uppercased())
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundColor(.appTextSecondary)
-                    .tracking(1.2)
-
-                Spacer()
-
-                // Playlist management menu
-                if let active = viewModel.activePlaylist {
-                    Menu {
-                        Button(action: {
-                            targetPlaylistId = active.id
-                            renamePlaylistName = active.name
-                            showRenamePlaylist = true
-                        }) {
-                            Label(L10n.t(.renamePlaylist), systemImage: "pencil")
-                        }
-
-                        if !active.isDefault {
-                            Button(role: .destructive, action: {
-                                targetPlaylistId = active.id
-                                showDeleteConfirm = true
-                            }) {
-                                Label(L10n.t(.deletePlaylist), systemImage: "trash")
-                            }
-                        }
-
-                        Divider()
-
-                        Button(action: {
-                            viewModel.rescanActiveLibrarySources()
-                        }) {
-                            Label(L10n.t(.rescanLibrary), systemImage: "arrow.clockwise")
-                        }
-                        .disabled(active.sources.isEmpty && viewModel.queue.isEmpty)
-                    } label: {
-                        Image(systemName: "folder.badge.gearshape")
-                            .font(.system(size: 11))
-                            .foregroundColor(.appTextSecondary)
-                            .padding(6)
-                            .background(Color.appAccent)
-                    }
-                    .menuStyle(.borderlessButton)
-                    .frame(width: 30)
-                }
-
-                TooltippedView(tooltip: L10n.t(.removeMissing)) {
-                    Button(action: { viewModel.removeUnavailableSongs() }) {
-                        Image(systemName: "trash.slash")
-                            .font(.system(size: 11))
-                            .foregroundColor(.appTextSecondary)
-                            .padding(6)
-                            .background(Color.appAccent)
-                    }
-                    .buttonStyle(.plain)
-                    .focusable(false)
-                    .disabled(contentMode != .playlist || !hasUnavailable)
-                }
-
-                TooltippedView(tooltip: L10n.t(.clear)) {
-                    Button(action: requestClearCurrentView) {
-                        Image(systemName: "trash")
-                            .font(.system(size: 11))
-                            .foregroundColor(.appTextSecondary)
-                            .padding(6)
-                            .background(Color.appAccent)
-                    }
-                    .buttonStyle(.plain)
-                    .focusable(false)
-                    .disabled(isClearDisabled)
-                }
-
-                TooltippedView(tooltip: L10n.t(.add)) {
-                    Button(action: openSongPanel) {
-                        Image(systemName: "plus")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(.appTextPrimary)
-                            .padding(6)
-                            .background(Color.appAccent)
-                    }
-                    .buttonStyle(.plain)
-                    .focusable(false)
-                    .keyboardShortcut("o", modifiers: [.command])
-                }
-            }
-            .padding(.horizontal, 10)
-            .padding(.top, 10)
-            .padding(.bottom, 6)
-            .background(Color.appBackground.opacity(0.95))
-
-            // Playlist Tabs Row
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 0) {
-                    ForEach(viewModel.playlists) { playlist in
-                        let isActive = playlist.id == (viewModel.activePlaylistId ?? viewModel.playlists.first?.id)
-
-                        Button(action: {
-                            contentMode = .playlist
-                            searchText = ""
-                            selection.removeAll()
-                            if !isActive {
-                                viewModel.switchPlaylist(to: playlist.id)
-                            }
-                        }) {
-                            Text(playlist.name)
-                                .font(.system(size: 11, weight: .regular))
-                                .foregroundColor(isActive ? .appTextPrimary : .appTextSecondary)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 8)
-                                .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .focusable(false)
-                        .background(isActive ? Color.appBackground : Color.appSecondary.opacity(0.3))
-                        .overlay(
-                            // 2px Top Border
-                            Rectangle()
-                                .fill(isActive ? Color.appHighlight : Color.appDivider)
-                                .frame(height: 2),
-                            alignment: .top
-                        )
-                        .overlay(
-                            // 1px Right Separator
-                            Rectangle()
-                                .fill(Color.appDivider)
-                                .frame(width: 1),
-                            alignment: .trailing
-                        )
-                    }
-
-                    // Create New Playlist Tab Button
-                    Button(action: {
-                        newPlaylistName = ""
-                        showCreatePlaylist = true
-                    }) {
-                        Image(systemName: "plus")
-                            .font(.system(size: 13, weight: .regular))
-                            .foregroundColor(.appTextSecondary)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .focusable(false)
-                    .background(Color.appSecondary.opacity(0.3))
-                    .overlay(
-                        // 2px Top Border
-                        Rectangle()
-                            .fill(Color.appDivider)
-                            .frame(height: 2),
-                        alignment: .top
-                    )
-                }
-                // Ensure HStack stretches at least the full width
-                .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
-            }
-            .background(Color.appSecondary.opacity(0.3))
-            .overlay(
-                // Baseline Top Divider for empty space in the ScrollView
-                Rectangle()
-                    .fill(Color.appDivider)
-                    .frame(height: 2),
-                alignment: .top
-            )
-
-            Divider().overlay(Color.appDivider)
-
-            contentModeSelector
-
-            Divider().overlay(Color.appDivider)
-
-            playlistSearchBar
+            playlistHeader
 
             Divider().overlay(Color.appDivider)
 
@@ -343,7 +184,9 @@ struct PlaylistView: View {
                     ForEach(filteredSongs, id: \.url.path) { song in
                         let index = queueIndex(for: song)
                         let isPlaying = isPlayingSong(song)
+                        let isFavorite = viewModel.isFavorite(song: song)
                         let isDragging = draggingSongId == song.id
+                        let showsDragHandle = contentMode == .playlist && !isFiltering && (hoveredSongId == song.id || isDragging)
                         let rowBackground: Color = {
                             if isDragging {
                                 return Color.appHighlight
@@ -358,51 +201,47 @@ struct PlaylistView: View {
                         }()
 
                         HStack(spacing: 6) {
-                            Image(systemName: "line.3.horizontal")
+                            Image(systemName: showsDragHandle ? "line.3.horizontal" : (isPlaying ? "play.fill" : "speaker.wave.2"))
                                 .font(.system(size: 9))
-                                .foregroundColor(.appTextSecondary.opacity(0.5))
-
-                            if isPlaying {
-                                Image(systemName: "speaker.wave.2.fill")
-                                    .foregroundColor(.appHighlight)
-                                    .font(.system(size: 9))
-                            }
+                                .foregroundColor(isPlaying ? .appControlActive : .appTextSecondary)
+                                .frame(width: 16, height: 16)
+                                .accessibilityHidden(true)
 
                             VStack(alignment: .leading, spacing: 1) {
                                 let displayTitle = song.title
                                 let displayText = song.artist.isEmpty ? displayTitle : "\(song.artist) • \(displayTitle)"
 
-                                if isPlaying {
-                                    MarqueeText(
-                                        text: displayText,
-                                        font: .system(size: 10, weight: .medium),
-                                        color: .appHighlightText,
-                                        speed: 28,
-                                        delay: 0.8,
-                                        spacing: 24
-                                    )
-                                    .layoutPriority(1)
+                                MarqueeText(
+                                    text: displayText,
+                                    font: .system(size: 10, weight: .medium),
+                                    color: isPlaying ? .appHighlightText : .appTextPrimary,
+                                    speed: 28,
+                                    delay: 0.8,
+                                    spacing: 24,
+                                    isScrollingEnabled: isPlaying,
+                                    lineHeight: 16
+                                )
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .help(displayText)
-                                } else {
-                                    Text(displayText)
-                                        .font(.system(size: 10, weight: .medium))
-                                        .tracking(-0.2) // tight spacing
-                                        .foregroundColor(.appTextPrimary)
-                                        .lineLimit(1)
-                                        .truncationMode(.tail)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                        .help(displayText)
-                                }
                             }
 
                             Spacer()
 
-                            if viewModel.isFavorite(song: song) {
-                                Image(systemName: "heart.fill")
+                            Button {
+                                viewModel.toggleFavorite(song: song)
+                                if contentMode == .favorites && isFavorite {
+                                    selection.remove(selectionKey(for: song))
+                                }
+                            } label: {
+                                Image(systemName: isFavorite ? "heart.fill" : "heart")
                                     .font(.system(size: 9))
-                                    .foregroundColor(.appHighlight)
+                                    .foregroundColor(isPlaying ? .appHighlightText : .appTextPrimary)
+                                    .frame(width: 24, height: 24)
+                                    .contentShape(Rectangle())
                             }
+                            .buttonStyle(.plain)
+                            .help(L10n.t(isFavorite ? .removeFromFavorites : .addToFavorites))
+                            .accessibilityLabel(L10n.t(isFavorite ? .removeFromFavorites : .addToFavorites))
 
                             if !song.isAvailable {
                                 Image(systemName: "exclamationmark.triangle.fill")
@@ -412,22 +251,21 @@ struct PlaylistView: View {
 
                             Text(formatDuration(song.duration))
                                 .font(.system(size: 10, design: .monospaced))
-                                .tracking(-0.1)
                                 .foregroundColor(.appTextSecondary)
                         }
                         .padding(.vertical, 4)
                         .contentShape(Rectangle())
                         .tag(selectionKey(for: song))
                         .listRowInsets(EdgeInsets(top: 2, leading: 2, bottom: 2, trailing: 4))
-                        .listRowBackground(rowBackground)
-                        .overlay(alignment: .leading) {
-                            if isPlaying {
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(
+                            rowBackground.overlay(alignment: .bottom) {
                                 Rectangle()
-                                    .fill(Color.appHighlight)
-                                    .frame(width: 2)
-                                    .offset(x: -4)
+                                    .fill(Color.appDivider)
+                                    .frame(height: 1)
+                                    .allowsHitTesting(false)
                             }
-                        }
+                        )
                         .onHover { isHovered in
                             hoveredSongId = isHovered ? song.id : nil
                         }
@@ -506,7 +344,7 @@ struct PlaylistView: View {
             }
 
             Divider().overlay(Color.appDivider)
-            playlistStatusBar
+            playlistFooter(hasUnavailable: hasUnavailable)
 
             if let notice = viewModel.playlistNotice {
                 Divider().overlay(Color.appDivider)
@@ -524,6 +362,8 @@ struct PlaylistView: View {
                 .frame(height: 24)
                 .background(Color.appSecondary.opacity(0.35))
             }
+            WindowHeightResizeHandle()
+                .frame(height: 6)
         }
         .background(Color.appBackground)
         .background {
@@ -536,6 +376,7 @@ struct PlaylistView: View {
         }
         .onChange(of: viewModel.activePlaylistId) { _, _ in
             searchText = ""
+            isSearchVisible = false
             selection.removeAll()
         }
         .overlay {
@@ -618,44 +459,211 @@ struct PlaylistView: View {
         }
     }
 
-    private var contentModeSelector: some View {
-        HStack(spacing: 0) {
-            ForEach(PlaylistContentMode.allCases, id: \.self) { mode in
-                let isActive = contentMode == mode
-                Button(action: {
-                    contentMode = mode
-                    searchText = ""
-                    selection.removeAll()
-                }) {
-                    HStack(spacing: 5) {
-                        Image(systemName: mode.icon)
-                            .font(.system(size: 9, weight: .medium))
-                        Text(mode.title)
-                            .font(.system(size: 10, weight: .medium))
-                    }
-                    .foregroundColor(isActive ? .appTextPrimary : .appTextSecondary)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 28)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .focusable(false)
-                .background(isActive ? Color.appBackground : Color.appSecondary.opacity(0.25))
-                .overlay(
-                    Rectangle()
-                        .fill(isActive ? Color.appHighlight : Color.appDivider)
-                        .frame(height: 1),
-                    alignment: .bottom
+    private var playlistHeader: some View {
+        HStack(spacing: 8) {
+            playlistMenu
+
+            Spacer(minLength: 8)
+
+            Text(statusText)
+                .font(.system(size: 9, design: .monospaced))
+                .foregroundColor(.appTextSecondary)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 8)
+        .frame(height: 24)
+        .background(Color.appBackground)
+    }
+
+    private func playlistFooter(hasUnavailable: Bool) -> some View {
+        VStack(spacing: 0) {
+            if isSearchVisible {
+                playlistSearchBar
+                Divider().overlay(Color.appDivider)
+            }
+
+            HStack(spacing: 6) {
+                footerButton(icon: "plus", tooltip: L10n.t(.add), action: openSongPanel)
+
+                footerButton(
+                    icon: "minus",
+                    tooltip: L10n.t(.delete),
+                    isDisabled: selection.isEmpty,
+                    action: removeSelectedSongs
                 )
-                .overlay(
-                    Rectangle()
-                        .fill(Color.appDivider)
-                        .frame(width: mode == .history ? 0 : 1),
-                    alignment: .trailing
+
+                footerButton(
+                    icon: "magnifyingglass",
+                    tooltip: L10n.t(.searchPlaceholder),
+                    isActive: isSearchVisible,
+                    action: toggleSearch
+                )
+
+                contentModeMenu
+
+                Spacer(minLength: 8)
+
+                footerButton(
+                    icon: "trash.slash",
+                    tooltip: L10n.t(.removeMissing),
+                    isDisabled: contentMode != .playlist || !hasUnavailable,
+                    action: { viewModel.removeUnavailableSongs() }
+                )
+
+                footerButton(
+                    icon: "trash",
+                    tooltip: clearTooltip,
+                    isDisabled: isClearDisabled,
+                    action: requestClearCurrentView
                 )
             }
+            .padding(.horizontal, 8)
+            .frame(height: 32)
+            .background(Color.appSecondary.opacity(0.22))
         }
-        .background(Color.appSecondary.opacity(0.25))
+    }
+
+    private var playlistMenu: some View {
+        Menu {
+            ForEach(viewModel.playlists) { playlist in
+                let isActive = playlist.id == (viewModel.activePlaylistId ?? viewModel.playlists.first?.id)
+                Button(action: {
+                    contentMode = .playlist
+                    searchText = ""
+                    isSearchVisible = false
+                    selection.removeAll()
+                    if !isActive {
+                        viewModel.switchPlaylist(to: playlist.id)
+                    }
+                }) {
+                    Label(playlist.name, systemImage: isActive ? "checkmark" : "music.note.list")
+                }
+            }
+
+            Divider()
+
+            Button(action: {
+                newPlaylistName = ""
+                showCreatePlaylist = true
+            }) {
+                Label(L10n.t(.createPlaylist), systemImage: "plus")
+            }
+
+            if let active = viewModel.activePlaylist {
+                Button(action: {
+                    targetPlaylistId = active.id
+                    renamePlaylistName = active.name
+                    showRenamePlaylist = true
+                }) {
+                    Label(L10n.t(.renamePlaylist), systemImage: "pencil")
+                }
+
+                if !active.isDefault {
+                    Button(role: .destructive, action: {
+                        targetPlaylistId = active.id
+                        showDeleteConfirm = true
+                    }) {
+                        Label(L10n.t(.deletePlaylist), systemImage: "trash")
+                    }
+                }
+
+                Divider()
+
+                Button(action: {
+                    viewModel.rescanActiveLibrarySources()
+                }) {
+                    Label(L10n.t(.rescanLibrary), systemImage: "arrow.clockwise")
+                }
+                .disabled(active.sources.isEmpty && viewModel.queue.isEmpty)
+            }
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: "music.note.list")
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundColor(.appTextSecondary)
+                Text(activePlaylistName)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(.appTextPrimary)
+                    .lineLimit(1)
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 7, weight: .bold))
+                    .foregroundColor(.appTextSecondary.opacity(0.8))
+            }
+            .padding(.horizontal, 2)
+            .frame(height: 18)
+            .contentShape(Rectangle())
+        }
+        .menuStyle(.borderlessButton)
+        .buttonStyle(.plain)
+        .frame(maxWidth: 150, alignment: .leading)
+    }
+
+    private var contentModeMenu: some View {
+        TooltippedView(tooltip: contentMode.title) {
+            Menu {
+                ForEach(PlaylistContentMode.allCases, id: \.self) { mode in
+                    let isActive = contentMode == mode
+                    Button(action: {
+                        contentMode = mode
+                        searchText = ""
+                        selection.removeAll()
+                    }) {
+                        Label(mode.title, systemImage: isActive ? "checkmark" : mode.icon)
+                    }
+                }
+            } label: {
+                HStack(spacing: 5) {
+                    Image(systemName: contentMode.icon)
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundColor(contentMode == .playlist ? .appTextSecondary : .appHighlightText)
+                    Text(contentMode.title)
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundColor(contentMode == .playlist ? .appTextSecondary : .appTextPrimary)
+                        .lineLimit(1)
+                    Image(systemName: "chevron.up")
+                        .font(.system(size: 7, weight: .bold))
+                        .foregroundColor(.appTextSecondary.opacity(0.8))
+                }
+                .padding(.horizontal, 2)
+                .frame(height: 24)
+                .contentShape(Rectangle())
+            }
+            .menuStyle(.borderlessButton)
+            .buttonStyle(.plain)
+            .frame(minWidth: 72, maxWidth: 98, minHeight: 24)
+        }
+    }
+
+    private func footerButton(
+        icon: String,
+        tooltip: String,
+        isActive: Bool = false,
+        isDisabled: Bool = false,
+        action: @escaping () -> Void
+    ) -> some View {
+        TooltippedView(tooltip: tooltip) {
+            Button(action: action) {
+                footerIconLabel(icon: icon, isActive: isActive, isDisabled: isDisabled)
+            }
+            .buttonStyle(.plain)
+            .focusable(false)
+            .disabled(isDisabled)
+            .accessibilityLabel(tooltip)
+        }
+    }
+
+    private func footerIconLabel(icon: String, isActive: Bool = false, isDisabled: Bool = false) -> some View {
+        Image(systemName: icon)
+            .font(.system(size: 10, weight: .medium))
+            .foregroundColor(
+                isDisabled
+                    ? .appTextSecondary.opacity(0.35)
+                    : (isActive ? .appControlActive : .appTextSecondary)
+            )
+            .frame(width: 24, height: 24)
+            .contentShape(Rectangle())
+            .background(isActive ? Color.appAccent.opacity(0.75) : Color.appBackground.opacity(0.35))
+            .overlay(Rectangle().stroke(Color.appDivider, lineWidth: 1))
     }
 
     private var playlistSearchBar: some View {
@@ -664,11 +672,13 @@ struct PlaylistView: View {
                 .font(.system(size: 10))
                 .foregroundColor(.appTextSecondary)
 
-            TextField(L10n.t(.searchPlaceholder), text: $searchText)
-                .textFieldStyle(.plain)
-                .font(.system(size: 10))
-                .foregroundColor(.appTextPrimary)
-                .focused($isSearchFocused)
+            PlaylistSearchField(
+                text: $searchText,
+                isFocused: $isSearchFocused,
+                focusRequest: searchFocusRequest,
+                onCancel: clearSearchOrSelection
+            )
+            .frame(height: 18)
 
             if isFiltering {
                 Button(action: clearSearch) {
@@ -685,19 +695,6 @@ struct PlaylistView: View {
         .padding(.horizontal, 10)
         .frame(height: 30)
         .background(Color.appSecondary.opacity(0.35))
-    }
-
-    private var playlistStatusBar: some View {
-        HStack(spacing: 6) {
-            Text(statusText)
-                .font(.system(size: 9, design: .monospaced))
-                .foregroundColor(.appTextSecondary)
-                .lineLimit(1)
-            Spacer()
-        }
-        .padding(.horizontal, 10)
-        .frame(height: 22)
-        .background(Color.appBackground)
     }
 
     private var emptyStateIcon: String {
@@ -744,6 +741,7 @@ struct PlaylistView: View {
                 EmptyView()
             }
             .keyboardShortcut(.return, modifiers: [])
+            .disabled(isSearchFocused)
 
             Button(action: createPlaylistFromShortcut) {
                 EmptyView()
@@ -754,16 +752,23 @@ struct PlaylistView: View {
                 EmptyView()
             }
             .keyboardShortcut("a", modifiers: [.command])
+            .disabled(isSearchFocused)
 
             Button(action: clearQueueFromShortcut) {
                 EmptyView()
             }
             .keyboardShortcut(.delete, modifiers: [.command, .shift])
+            .disabled(isSearchFocused)
 
             Button(action: clearSearchOrSelection) {
                 EmptyView()
             }
             .keyboardShortcut(.cancelAction)
+
+            Button(action: openSongPanel) {
+                EmptyView()
+            }
+            .keyboardShortcut("o", modifiers: [.command])
         }
         .frame(width: 0, height: 0)
         .opacity(0)
@@ -792,11 +797,25 @@ struct PlaylistView: View {
 
     func clearSearch() {
         searchText = ""
-        isSearchFocused = true
+        if isSearchVisible {
+            searchFocusRequest += 1
+        }
     }
 
     func focusSearch() {
-        isSearchFocused = true
+        isSearchVisible = true
+        searchFocusRequest += 1
+    }
+
+    func toggleSearch() {
+        if isSearchVisible {
+            searchText = ""
+            isSearchFocused = false
+            isSearchVisible = false
+            return
+        }
+
+        focusSearch()
     }
 
     func selectionKey(for song: Song) -> String {
@@ -880,12 +899,18 @@ struct PlaylistView: View {
             viewModel.clearHistory()
         }
         searchText = ""
+        isSearchVisible = false
         selection.removeAll()
     }
 
     func clearSearchOrSelection() {
-        if isFiltering {
-            searchText = ""
+        if isSearchVisible {
+            if isFiltering {
+                searchText = ""
+                return
+            }
+            isSearchFocused = false
+            isSearchVisible = false
             return
         }
         selection.removeAll()
@@ -941,6 +966,104 @@ struct PlaylistView: View {
             return URL(string: string)
         }
         return nil
+    }
+}
+
+private struct PlaylistSearchField: NSViewRepresentable {
+    @Binding var text: String
+    @Binding var isFocused: Bool
+    let focusRequest: Int
+    let onCancel: () -> Void
+
+    func makeNSView(context: Context) -> PlaylistSearchTextField {
+        let field = PlaylistSearchTextField()
+        field.delegate = context.coordinator
+        field.isEditable = true
+        field.isSelectable = true
+        field.isBordered = false
+        field.isBezeled = false
+        field.drawsBackground = false
+        field.focusRingType = .none
+        field.font = .systemFont(ofSize: 10)
+        field.usesSingleLineMode = true
+        field.cell?.isScrollable = true
+        field.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        return field
+    }
+
+    func updateNSView(_ field: PlaylistSearchTextField, context: Context) {
+        context.coordinator.parent = self
+        if field.stringValue != text {
+            field.stringValue = text
+        }
+        field.placeholderString = L10n.t(.searchPlaceholder)
+        field.setAccessibilityLabel(L10n.t(.searchPlaceholder))
+        field.textColor = .appTextPrimary
+        field.requestFocus(focusRequest)
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator(parent: self) }
+
+    final class Coordinator: NSObject, NSTextFieldDelegate {
+        var parent: PlaylistSearchField
+        init(parent: PlaylistSearchField) { self.parent = parent }
+
+        func controlTextDidBeginEditing(_ notification: Notification) {
+            parent.isFocused = true
+        }
+
+        func controlTextDidChange(_ notification: Notification) {
+            guard let field = notification.object as? NSTextField else { return }
+            parent.text = field.stringValue
+        }
+
+        func controlTextDidEndEditing(_ notification: Notification) {
+            parent.isFocused = false
+        }
+
+        func control(_ control: NSControl, textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
+            if commandSelector == #selector(NSResponder.cancelOperation(_:)) {
+                parent.onCancel()
+                return true
+            }
+            return commandSelector == #selector(NSResponder.insertNewline(_:))
+        }
+    }
+}
+
+private final class PlaylistSearchTextField: NSTextField {
+    private var lastFocusRequest: Int?
+    private var hasPendingFocus = false
+
+    override var acceptsFirstResponder: Bool { true }
+    override var needsPanelToBecomeKey: Bool { true }
+
+    func requestFocus(_ request: Int) {
+        guard request != lastFocusRequest else { return }
+        lastFocusRequest = request
+        hasPendingFocus = true
+        focusIfReady()
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        focusIfReady()
+    }
+
+    private func focusIfReady() {
+        guard hasPendingFocus, window != nil else { return }
+        hasPendingFocus = false
+        // Request once on opening/refocusing, never on each text update.
+        DispatchQueue.main.async { [weak self] in
+            guard let self, let window = self.window else { return }
+            window.makeKeyAndOrderFront(nil)
+            window.makeFirstResponder(self)
+        }
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        window?.makeKey()
+        super.mouseDown(with: event)
     }
 }
 

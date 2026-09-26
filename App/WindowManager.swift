@@ -2,6 +2,13 @@ import SwiftUI
 import AppKit
 import Combine
 
+extension NSUserInterfaceItemIdentifier {
+    static let woredPlayerWindow = NSUserInterfaceItemIdentifier("wored.playerWindow")
+    static let woredPlaylistWindow = NSUserInterfaceItemIdentifier("wored.playlistWindow")
+    static let woredSettingsPanel = NSUserInterfaceItemIdentifier("wored.settingsPanel")
+    static let woredSongInfoPanel = NSUserInterfaceItemIdentifier("wored.songInfoPanel")
+}
+
 // MARK: - Window Manager for Pinning
 class WindowManager: ObservableObject {
     static let shared = WindowManager()
@@ -27,6 +34,7 @@ class WindowManager: ObservableObject {
     private var appActiveObserver: NSObjectProtocol?
     private var appTerminateObserver: NSObjectProtocol?
     private var isAppTerminating = false
+    private var arePlayerWindowsHidden = false
     
     private init() {
         pendingShowPlaylist = UserDefaults.standard.bool(forKey: playlistVisibleKey)
@@ -72,9 +80,25 @@ class WindowManager: ObservableObject {
         guard event.modifierFlags.intersection(blockedModifiers).isEmpty else { return false }
 
         guard let keyWindow = NSApp.keyWindow,
-              keyWindow === playerWindow || keyWindow === playlistWindow else { return false }
+              isPlaybackShortcutWindow(keyWindow) else { return false }
 
         return !isTextInputFocused(in: keyWindow)
+    }
+
+    private func isPlaybackShortcutWindow(_ window: NSWindow) -> Bool {
+        if window === playerWindow || window === playlistWindow {
+            return true
+        }
+
+        let supportedIdentifiers: Set<NSUserInterfaceItemIdentifier> = [
+            .woredPlayerWindow,
+            .woredPlaylistWindow,
+            .woredSettingsPanel,
+            .woredSongInfoPanel
+        ]
+
+        guard let identifier = window.identifier else { return false }
+        return supportedIdentifiers.contains(identifier)
     }
 
     private func isTextInputFocused(in window: NSWindow) -> Bool {
@@ -97,6 +121,7 @@ class WindowManager: ObservableObject {
     
     func registerPlayerWindow(_ window: NSWindow) {
         playerWindow = window
+        window.identifier = .woredPlayerWindow
         
         // Synch always on top state
         window.level = AudioPlayerViewModel.shared.alwaysOnTop ? .floating : .normal
@@ -131,6 +156,7 @@ class WindowManager: ObservableObject {
     
     func registerPlaylistWindow(_ window: NSWindow) {
         playlistWindow = window
+        window.identifier = .woredPlaylistWindow
         isPlaylistVisible = window.isVisible
         
         // Observe playlist window movement
@@ -268,7 +294,7 @@ class WindowManager: ObservableObject {
     }
     
     private func syncForeground(from source: NSWindow) {
-        guard !isForegroundSyncing else { return }
+        guard !isForegroundSyncing, !arePlayerWindowsHidden else { return }
         isForegroundSyncing = true
         defer { isForegroundSyncing = false }
         
@@ -282,6 +308,7 @@ class WindowManager: ObservableObject {
     }
 
     private func bringWindowsToFrontIfNeeded() {
+        guard !arePlayerWindowsHidden else { return }
         guard let player = playerWindow else { return }
         bringToFront(player)
         if let playlist = playlistWindow, playlist.isVisible {
@@ -289,6 +316,24 @@ class WindowManager: ObservableObject {
         }
     }
     
+    func hidePlayerWindows() {
+        arePlayerWindowsHidden = true
+        InfoPanelController.close()
+        SongInfoPanelController.close()
+        playlistWindow?.orderOut(nil)
+        playerWindow?.orderOut(nil)
+    }
+
+    func showPlayerWindows() {
+        arePlayerWindowsHidden = false
+        playerWindow?.deminiaturize(nil)
+        playerWindow?.makeKeyAndOrderFront(nil)
+        if isPlaylistVisible {
+            showPlaylist()
+        }
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
     func showPlaylist() {
         guard let playlist = playlistWindow else { return }
         alignPlaylistBelowPlayer()
@@ -306,7 +351,7 @@ class WindowManager: ObservableObject {
         UserDefaults.standard.set(false, forKey: playlistVisibleKey)
     }
     
-    func togglePlaylist(openWindow: () -> Void) {
+    func togglePlaylist() {
         if let playlist = playlistWindow {
             if playlist.isVisible {
                 hidePlaylist()
@@ -315,11 +360,11 @@ class WindowManager: ObservableObject {
             }
         } else {
             pendingShowPlaylist = true
-            openWindow()
+            PlaylistWindowController.shared.open()
         }
     }
 
-    func restorePlaylistIfNeeded(openWindow: () -> Void) {
+    func restorePlaylistIfNeeded() {
         guard UserDefaults.standard.bool(forKey: playlistVisibleKey) else { return }
         if let playlist = playlistWindow {
             if !playlist.isVisible {
@@ -327,7 +372,7 @@ class WindowManager: ObservableObject {
             }
         } else {
             pendingShowPlaylist = true
-            openWindow()
+            PlaylistWindowController.shared.open()
         }
     }
     

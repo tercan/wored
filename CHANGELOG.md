@@ -2,6 +2,36 @@
 
 All notable changes to Wored will be documented in this file.
 
+## [0.7.0] - 2026-09-26 20:20
+
+### Added
+
+- Added a theme-aware, radiusless menu bar panel with the Wored W icon and outside-click dismissal.
+- Added single-instance protection before loading playback and persisted data.
+- Added clickable outline/filled favorite controls in every playlist view.
+- Added persistent settings and track-info panel positions, resizable track-info height, and Cmd+W/Ctrl+W panel shortcuts.
+- Added process-lock and panel-geometry regression tests.
+- Added automated tagged GitHub Releases with installable DMG, application ZIP, and SHA-256 checksums.
+
+### Changed
+
+- Reorganized playlist controls into a compact footer with a top playlist selector and on-demand bottom search.
+- Changed the player close button to hide windows while music continues in the background.
+- Made player controls clearer in light/dark themes with stable sizes and full hit areas.
+- Moved playlist window ownership to a keyable AppKit window for reliable keyboard input.
+- Read the displayed app version from bundle metadata and documented the release publication policy.
+
+### Fixed
+
+- Restored dragging for the player, settings, and track-info windows.
+- Fixed search input focus, text selection, spaces, and Turkish character entry.
+- Prevented tag-editor focus from jumping back to the title field.
+- Kept playlist text vertically aligned while restoring scrolling for overflowing active-track names.
+- Restored full-width playlist row separators and consistent audio/play/drag indicators.
+- Added explicit vertical resize cursors and handles to playlist and track-info windows.
+- Clarified playlist clearing tooltips and shortened the track-info edit button label.
+- Extended guarded Spacebar handling to auxiliary panels without interfering with text fields.
+
 ## [0.6.0] - 2026-04-28 02:55
 
 ### Added

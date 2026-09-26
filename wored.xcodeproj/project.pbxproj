@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		CCA00013F0000001000A0001 /* PanelFramePersistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCA00013F0000000000A0001 /* PanelFramePersistence.swift */; };
+		CCA00012F0000001000A0001 /* SingleInstanceLock.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCA00012F0000000000A0001 /* SingleInstanceLock.swift */; };
 		CC1083BD2F0922FD003F1210 /* AudioPlayerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC1083BC2F0922FC003F1210 /* AudioPlayerViewModel.swift */; };
 		CC477BD72F09224200662DFD /* woredApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC477BD62F09224200662DFD /* woredApp.swift */; };
 		CC477BD92F09224200662DFD /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC477BD82F09224200662DFD /* ContentView.swift */; };
@@ -30,6 +32,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		CCA00013F0000000000A0001 /* PanelFramePersistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PanelFramePersistence.swift; sourceTree = "<group>"; };
+		CCA00012F0000000000A0001 /* SingleInstanceLock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SingleInstanceLock.swift; sourceTree = "<group>"; };
 		CC1083BC2F0922FC003F1210 /* AudioPlayerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlayerViewModel.swift; sourceTree = "<group>"; };
 		CC477BD32F09224200662DFD /* Wored.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Wored.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CC477BD62F09224200662DFD /* woredApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = woredApp.swift; sourceTree = "<group>"; };
@@ -161,6 +165,8 @@
 			isa = PBXGroup;
 			children = (
 				CCA00011F0000000000A0001 /* ID3TagEditor.swift */,
+				CCA00012F0000000000A0001 /* SingleInstanceLock.swift */,
+				CCA00013F0000000000A0001 /* PanelFramePersistence.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -256,6 +262,8 @@
 				CCA0000CF0000001000A0001 /* TooltippedView.swift in Sources */,
 				CCA0000DF0000001000A0001 /* ScrollableView.swift in Sources */,
 				CCA00011F0000001000A0001 /* ID3TagEditor.swift in Sources */,
+				CCA00012F0000001000A0001 /* SingleInstanceLock.swift in Sources */,
+				CCA00013F0000001000A0001 /* PanelFramePersistence.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -383,7 +391,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = wored.entitlements;
 				CODE_SIGN_STYLE = Manual;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_PREVIEWS = YES;
@@ -406,7 +414,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.2;
-				MARKETING_VERSION = 0.6.0;
+				MARKETING_VERSION = 0.7.0;
 				PRODUCT_BUNDLE_IDENTIFIER = gupse.wored;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -431,7 +439,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = wored.entitlements;
 				CODE_SIGN_STYLE = Manual;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_PREVIEWS = YES;
@@ -454,7 +462,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.2;
-				MARKETING_VERSION = 0.6.0;
+				MARKETING_VERSION = 0.7.0;
 				PRODUCT_BUNDLE_IDENTIFIER = gupse.wored;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";

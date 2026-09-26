@@ -39,8 +39,8 @@ extension Color {
     // Şimdilik highlight'ı sabit tutalım, textleri uyarlayalım
     static let appHighlight = Color(hex: "003999") 
     static let appHighlightText = dynamic(light: "003999", dark: "C8D8FF")
-    static let appControlDefault = dynamic(light: "D1D9E6", dark: "0C328C")
-    static let appControlActive = Color(hex: "448AFF")
+    static let appControlDefault = dynamic(light: "46566F", dark: "B8C6E6")
+    static let appControlActive = dynamic(light: "003999", dark: "74ADFF")
     static let appTextPrimary = dynamic(light: "1A202C", dark: "E9F0FF")
     static let appTextSecondary = dynamic(light: "718096", dark: "B8C6E6")
     static let appDivider = dynamic(light: "E2E8F0", dark: "1B2B55")

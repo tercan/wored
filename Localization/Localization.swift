@@ -5,8 +5,11 @@ enum L10n {
         case noTrackSelected
         case unknownArtist
         case playlistTitle
+        case hidePlayer
         case add
         case clear
+        case clearPlaylist
+        case clearFavorites
         case infoVersion
         case infoDeveloper
         case infoBuild
@@ -20,6 +23,10 @@ enum L10n {
         case delete
         case info
         case play
+        case pause
+        case previousTrack
+        case nextTrack
+        case singleInstanceUnavailable
         case playNext
         case addToQueue
         case addToFavorites
@@ -99,6 +106,7 @@ enum L10n {
         case songInfoModified
         case songInfoFilePath
         case editTags
+        case edit
         case chooseArtwork
         case removeArtwork
         case resetArtwork
@@ -116,8 +124,11 @@ enum L10n {
         .noTrackSelected: "Parça seçilmedi",
         .unknownArtist: "Bilinmeyen Sanatçı",
         .playlistTitle: "ÇALMA LİSTESİ",
+        .hidePlayer: "Pencereyi gizle",
         .add: "Ekle",
         .clear: "Temizle",
+        .clearPlaylist: "Çalma listesini temizle",
+        .clearFavorites: "Favorileri temizle",
         .infoVersion: "Sürüm",
         .infoDeveloper: "Geliştirici",
         .infoBuild: "Derleme",
@@ -131,6 +142,10 @@ enum L10n {
         .delete: "Sil",
         .info: "Bilgi",
         .play: "Çal",
+        .pause: "Duraklat",
+        .previousTrack: "Önceki parça",
+        .nextTrack: "Sonraki parça",
+        .singleInstanceUnavailable: "Uygulamanın çalışma durumu denetlenemedi. Wored kopyalarını kapatıp yeniden deneyin.",
         .playNext: "Sıradaki Olarak Çal",
         .addToQueue: "Sıraya Ekle",
         .addToFavorites: "Favorilere Ekle",
@@ -210,6 +225,7 @@ enum L10n {
         .songInfoModified: "Değiştirilme",
         .songInfoFilePath: "Yol",
         .editTags: "Etiketleri Düzenle",
+        .edit: "Düzenle",
         .chooseArtwork: "Kapak Seç",
         .removeArtwork: "Kaldır",
         .resetArtwork: "Geri Al",
@@ -227,8 +243,11 @@ enum L10n {
         .noTrackSelected: "No track selected",
         .unknownArtist: "Unknown Artist",
         .playlistTitle: "Playlist",
+        .hidePlayer: "Hide window",
         .add: "Add",
         .clear: "Clear",
+        .clearPlaylist: "Clear playlist",
+        .clearFavorites: "Clear favorites",
         .infoVersion: "Version",
         .infoDeveloper: "Developer",
         .infoBuild: "Build",
@@ -242,6 +261,10 @@ enum L10n {
         .delete: "Delete",
         .info: "Info",
         .play: "Play",
+        .pause: "Pause",
+        .previousTrack: "Previous track",
+        .nextTrack: "Next track",
+        .singleInstanceUnavailable: "Unable to check whether Wored is already running. Close any Wored copies and try again.",
         .playNext: "Play Next",
         .addToQueue: "Add to Queue",
         .addToFavorites: "Add to Favorites",
@@ -321,6 +344,7 @@ enum L10n {
         .songInfoModified: "Modified",
         .songInfoFilePath: "Path",
         .editTags: "Edit Tags",
+        .edit: "Edit",
         .chooseArtwork: "Choose Art",
         .removeArtwork: "Remove",
         .resetArtwork: "Reset",

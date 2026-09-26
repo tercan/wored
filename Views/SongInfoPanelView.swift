@@ -25,7 +25,6 @@ struct SongInfoPanelView: View {
     @State private var draft: SongTagDraft
     @State private var draftArtwork: NSImage?
     @State private var editError: String?
-    @State private var focusedField: TagEditorField?
 
     init(
         song: Song,
@@ -64,7 +63,7 @@ struct SongInfoPanelView: View {
                 }
                 .padding(10)
             }
-            .frame(maxHeight: 300)
+            .frame(maxHeight: .infinity)
 
             Divider().overlay(Color.appDivider)
 
@@ -111,7 +110,7 @@ struct SongInfoPanelView: View {
                     .disabled(isSaving)
                 } else {
                     Button(action: beginEditing) {
-                        Text(L10n.t(.editTags))
+                        Text(L10n.t(.edit))
                             .font(.system(size: 10, weight: .medium))
                             .foregroundColor(.appHighlightText)
                             .padding(.horizontal, 8)
@@ -137,8 +136,11 @@ struct SongInfoPanelView: View {
             }
             .padding(10)
             .background(Color.appBackground.opacity(0.4))
+            WindowHeightResizeHandle()
+                .frame(height: 6)
         }
         .frame(width: 300)
+        .frame(minHeight: 320, maxHeight: .infinity)
         .background(Color.appSecondary.opacity(0.98))
         .border(Color.appDivider, width: 1)
         .shadow(color: Color.black.opacity(0.5), radius: 20, x: 0, y: 10)
@@ -147,14 +149,13 @@ struct SongInfoPanelView: View {
             draft = SongTagDraft(song: newValue)
             draftArtwork = artwork
         }
-        .onAppear {
-            focusFirstFieldIfNeeded()
-        }
     }
 
     private var header: some View {
         HStack(alignment: .top, spacing: 10) {
             artworkPreview(image: isEditing ? draftArtwork : artwork, size: 58, iconSize: 18)
+                .contentShape(Rectangle())
+                .gesture(WindowDragGesture())
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(L10n.t(.songInfoTitle).uppercased())
@@ -174,6 +175,8 @@ struct SongInfoPanelView: View {
                     .lineLimit(1)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+            .gesture(WindowDragGesture())
 
             Button(action: onClose) {
                 Image(systemName: "xmark")
@@ -187,7 +190,11 @@ struct SongInfoPanelView: View {
             .accessibilityLabel(L10n.t(.cancel))
         }
         .padding(10)
-        .background(Color.appBackground.opacity(0.35))
+        .background {
+            Color.appBackground.opacity(0.35)
+                .contentShape(Rectangle())
+                .gesture(WindowDragGesture())
+        }
     }
 
     private var metadataRows: [SongInfoRowData] {
@@ -322,12 +329,8 @@ struct SongInfoPanelView: View {
             TagEditorTextField(
                 placeholder: label,
                 text: text,
-                focusedField: $focusedField,
-                field: field,
-                isDisabled: isSaving,
-                onSubmit: {
-                    focusNextField(after: field)
-                }
+                initiallyFocused: field == .title,
+                isDisabled: isSaving
             )
             .frame(height: 14)
                 .padding(.horizontal, 8)
@@ -426,14 +429,12 @@ struct SongInfoPanelView: View {
         draftArtwork = artwork
         editError = nil
         isEditing = true
-        focusFirstFieldIfNeeded()
     }
 
     private func cancelEditing() {
         draft = SongTagDraft(song: song)
         draftArtwork = artwork
         editError = nil
-        focusedField = nil
         isEditing = false
     }
 
@@ -479,7 +480,6 @@ struct SongInfoPanelView: View {
     private func saveEditing() {
         guard !isSaving else { return }
         isSaving = true
-        focusedField = nil
         editError = nil
         let currentDraft = draft
         Task {
@@ -493,35 +493,8 @@ struct SongInfoPanelView: View {
                     savedDraft.artworkChange = .keep
                     isEditing = false
                     draft = savedDraft
-                    focusedField = nil
                 }
             }
-        }
-    }
-
-    private func focusFirstFieldIfNeeded() {
-        guard isEditing else { return }
-        DispatchQueue.main.async {
-            focusedField = .title
-        }
-    }
-
-    private func focusNextField(after field: TagEditorField) {
-        switch field {
-        case .title:
-            focusedField = .artist
-        case .artist:
-            focusedField = .album
-        case .album:
-            focusedField = .genre
-        case .genre:
-            focusedField = .year
-        case .year:
-            focusedField = .trackNumber
-        case .trackNumber:
-            focusedField = .discNumber
-        case .discNumber:
-            focusedField = nil
         }
     }
 
@@ -572,6 +545,7 @@ final class SongInfoPanelController: NSObject, NSWindowDelegate {
             hostingView.rootView = rootView
         } else {
             let hostingView = NSHostingView(rootView: rootView)
+            hostingView.sizingOptions = []
             hostingView.frame = NSRect(x: 0, y: 0, width: 300, height: 440)
             hostingView.autoresizingMask = [.width, .height]
             hostingView.wantsLayer = true
@@ -581,7 +555,10 @@ final class SongInfoPanelController: NSObject, NSWindowDelegate {
             self.hostingView = hostingView
         }
 
-        position(panel)
+        if !PanelFramePersistence.restore(panel, name: PanelFramePersistence.songInfo, preferredScreen: anchorWindow()?.screen) {
+            position(panel)
+            PanelFramePersistence.constrain(panel, preferredScreen: anchorWindow()?.screen)
+        }
         panel.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
         self.panel = panel
@@ -591,11 +568,13 @@ final class SongInfoPanelController: NSObject, NSWindowDelegate {
     private func makePanel() -> SongInfoPanelWindow {
         let panel = SongInfoPanelWindow(
             contentRect: NSRect(x: 0, y: 0, width: 300, height: 440),
-            styleMask: [.borderless],
+            styleMask: [.borderless, .resizable],
             backing: .buffered,
             defer: false
         )
         panel.isReleasedWhenClosed = false
+        panel.minSize = NSSize(width: 300, height: 320)
+        panel.maxSize = NSSize(width: 300, height: 1200)
         panel.hasShadow = true
         panel.isOpaque = false
         panel.backgroundColor = .clear
@@ -605,6 +584,8 @@ final class SongInfoPanelController: NSObject, NSWindowDelegate {
         panel.titleVisibility = .hidden
         panel.titlebarAppearsTransparent = true
         panel.isMovableByWindowBackground = true
+        panel.isMovable = true
+        panel.identifier = .woredSongInfoPanel
         panel.delegate = self
         return panel
     }
@@ -644,19 +625,36 @@ final class SongInfoPanelController: NSObject, NSWindowDelegate {
     }
 
     private func close() {
+        if let panel { panel.saveFrame(usingName: PanelFramePersistence.songInfo) }
         panel?.orderOut(nil)
         stopKeyMonitor()
     }
 
     func windowWillClose(_ notification: Notification) {
+        if let panel { panel.saveFrame(usingName: PanelFramePersistence.songInfo) }
         stopKeyMonitor()
+    }
+
+    func windowDidMove(_ notification: Notification) {
+        saveVisibleFrame(notification)
+    }
+
+    func windowDidResize(_ notification: Notification) {
+        saveVisibleFrame(notification)
+    }
+
+    private func saveVisibleFrame(_ notification: Notification) {
+        guard let changedPanel = notification.object as? NSPanel, changedPanel.isVisible else { return }
+        changedPanel.saveFrame(usingName: PanelFramePersistence.songInfo)
     }
 
     private func startKeyMonitor() {
         stopKeyMonitor()
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self else { return event }
-            guard event.keyCode == 53, event.window === self.panel else { return event }
+            guard let panel = self.panel, panel.isVisible,
+                  NSApp.keyWindow === panel, event.window === panel,
+                  PanelCloseShortcut.matches(event) else { return event }
             self.close()
             return nil
         }
@@ -729,13 +727,12 @@ private enum SongInfoPanelError: LocalizedError {
 private struct TagEditorTextField: NSViewRepresentable {
     let placeholder: String
     @Binding var text: String
-    @Binding var focusedField: TagEditorField?
-    let field: TagEditorField
+    let initiallyFocused: Bool
     let isDisabled: Bool
-    let onSubmit: () -> Void
 
     func makeNSView(context: Context) -> NSTextField {
         let textField = FocusableTagTextField()
+        textField.initiallyFocused = initiallyFocused
         textField.delegate = context.coordinator
         textField.isBordered = false
         textField.isBezeled = false
@@ -754,9 +751,6 @@ private struct TagEditorTextField: NSViewRepresentable {
 
     func updateNSView(_ textField: NSTextField, context: Context) {
         context.coordinator.text = $text
-        context.coordinator.focusedField = $focusedField
-        context.coordinator.field = field
-        context.coordinator.onSubmit = onSubmit
 
         if textField.stringValue != text {
             textField.stringValue = text
@@ -766,46 +760,17 @@ private struct TagEditorTextField: NSViewRepresentable {
         textField.isEnabled = !isDisabled
         textField.textColor = isDisabled ? .appTextSecondary : .appTextPrimary
 
-        guard focusedField == field, !isDisabled else { return }
-        DispatchQueue.main.async {
-            guard let window = textField.window else { return }
-            window.makeKey()
-            let responder = window.firstResponder
-            if responder !== textField && responder !== textField.currentEditor() {
-                window.makeFirstResponder(textField)
-            }
-        }
     }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(
-            text: $text,
-            focusedField: $focusedField,
-            field: field,
-            onSubmit: onSubmit
-        )
+        Coordinator(text: $text)
     }
 
     final class Coordinator: NSObject, NSTextFieldDelegate {
         var text: Binding<String>
-        var focusedField: Binding<TagEditorField?>
-        var field: TagEditorField
-        var onSubmit: () -> Void
 
-        init(
-            text: Binding<String>,
-            focusedField: Binding<TagEditorField?>,
-            field: TagEditorField,
-            onSubmit: @escaping () -> Void
-        ) {
+        init(text: Binding<String>) {
             self.text = text
-            self.focusedField = focusedField
-            self.field = field
-            self.onSubmit = onSubmit
-        }
-
-        func controlTextDidBeginEditing(_ notification: Notification) {
-            focusedField.wrappedValue = field
         }
 
         func controlTextDidChange(_ notification: Notification) {
@@ -825,7 +790,7 @@ private struct TagEditorTextField: NSViewRepresentable {
         ) -> Bool {
             if commandSelector == #selector(NSResponder.insertNewline(_:)) {
                 text.wrappedValue = textView.string
-                onSubmit()
+                control.window?.selectNextKeyView(control)
                 return true
             }
             return false
@@ -834,6 +799,21 @@ private struct TagEditorTextField: NSViewRepresentable {
 }
 
 private final class FocusableTagTextField: NSTextField {
+    var initiallyFocused = false
+    private var didRequestInitialFocus = false
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        guard initiallyFocused, !didRequestInitialFocus, window != nil else { return }
+        didRequestInitialFocus = true
+        // Request initial focus once; native key-view navigation owns subsequent changes.
+        DispatchQueue.main.async { [weak self] in
+            guard let self, let window = self.window, self.isEnabled else { return }
+            guard !(window.firstResponder is NSTextView), !(window.firstResponder is NSTextField) else { return }
+            window.makeFirstResponder(self)
+        }
+    }
+
     override var acceptsFirstResponder: Bool {
         true
     }

@@ -15,6 +15,9 @@ struct MarqueeText: View {
     let speed: Double
     let delay: Double
     let spacing: CGFloat
+    var isScrollingEnabled = true
+    var lineHeight: CGFloat = 14
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     
     @State private var textWidth: CGFloat = 0
     @State private var animate = false
@@ -26,11 +29,12 @@ struct MarqueeText: View {
                 // Always measure text width, even when not scrolling.
                 marqueeText(measure: true)
                     .opacity(0)
-                if textWidth <= containerWidth || containerWidth <= 0 {
+                if !isScrollingEnabled || reduceMotion || textWidth <= containerWidth || containerWidth <= 0 {
                     Text(text)
                         .font(font)
                         .foregroundColor(color)
                         .lineLimit(1)
+                        .truncationMode(.tail)
                 } else {
                     HStack(spacing: spacing) {
                         marqueeText(measure: true)
@@ -44,19 +48,22 @@ struct MarqueeText: View {
                         value: animate
                     )
                     .onAppear { restartAnimation() }
-                    .onChange(of: textWidth) { _ in restartAnimation() }
-                    .onChange(of: containerWidth) { _ in restartAnimation() }
+                    .onChange(of: textWidth) { _, _ in restartAnimation() }
+                    .onChange(of: containerWidth) { _, _ in restartAnimation() }
+                    .onChange(of: text) { _, _ in restartAnimation() }
                 }
             }
-            .frame(width: containerWidth, alignment: .leading)
+            .frame(width: containerWidth, height: geo.size.height, alignment: .leading)
             .clipped()
             .onPreferenceChange(MarqueeWidthPreferenceKey.self) { width in
-                if width > 0, abs(textWidth - width) > 0.5 {
+                if abs(textWidth - width) > 0.5 {
                     textWidth = width
                 }
             }
         }
-        .frame(height: 14)
+        .frame(height: lineHeight)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(text)
     }
     
     private func marqueeText(measure: Bool) -> some View {
@@ -76,7 +83,11 @@ struct MarqueeText: View {
     }
     
     private func restartAnimation() {
-        animate = false
+        var transaction = Transaction(animation: nil)
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            animate = false
+        }
         DispatchQueue.main.async {
             animate = true
         }

@@ -5,6 +5,7 @@
 # Build products
 build/
 DerivedData/
+dist/
 
 # User settings
 *.xcuserstate
