@@ -2,6 +2,44 @@
 
 All notable changes to Wored will be documented in this file.
 
+## [0.6.0] - 2026-04-28 02:55
+
+### Added
+
+- Added playlist-wide Finder drag-and-drop handling for audio files and folders, including the empty playlist state.
+- Added persisted playlist folder sources with a compact "Rescan" action for refreshing long-lived libraries.
+- Added import feedback for added songs, skipped duplicate tracks, and unsupported dropped files.
+- Added compact playlist search with a no-results state and clear action.
+- Added a playlist status strip for track count, visible result count, total duration, selected item, and missing files.
+- Added compact Favorites and History playlist views with matching empty states, context-menu removal, and clear-history confirmation.
+- Added keyboard shortcuts for playlist search, selected-track playback, playlist creation, queue clearing, and playlist window toggling.
+- Added Spacebar play/pause handling for player and playlist windows.
+- Added a radiusless rich track info panel with artwork, tag metadata, file details, and technical audio properties.
+- Added first-phase MP3/ID3 text tag editing for title, artist, album, genre, year, track number, and disc number.
+- Added second-phase MP3/ID3 artwork editing with choose, remove, and reset controls in the track info panel.
+
+### Changed
+
+- Strengthened duplicate prevention by comparing normalized paths and file resource identifiers during imports.
+- Kept new playlist import, drop target, notice, and action surfaces aligned with the existing radiusless UI style.
+- Updated saved song metadata to persist path, file size, modification date, and resource identifier hints.
+- Extended saved song metadata with album, genre, year, format, bitrate, sample rate, and channel count hints.
+- Extended saved song metadata with track and disc number hints.
+- Preserved existing non-edited ID3 frames while rewriting text and artwork frames.
+- Switched edited ID3 text frames to BOM-marked UTF-16 for broader non-latin character compatibility across MP3 players.
+- Moved the track info and tag editor panel out of the playlist overlay into its own keyable AppKit panel.
+- Disabled drag reordering while playlist search is active to keep filtered order and queue order predictable.
+
+### Fixed
+
+- Hardened playback transitions with generation tokens so stale scheduled audio callbacks cannot advance playback after a new song, seek, stop, or crossfade.
+- Refreshed playlist metadata when audio file tags change, including ID3/MP4 tag parsing, app-activation checks, and manual rescan for playlists without folder sources.
+- Reset stopped player node volume to prevent stale audio from leaking into later transitions.
+- Kept the currently playing track alive when switching playlist tabs.
+- Replaced tag editor text fields with native AppKit text fields so editing works reliably inside the playlist overlay.
+- Prevented the launch-at-startup preference from calling `SMAppService` while stored preferences are loading.
+- Removed the legacy SwiftUI preview block that prevented sandboxed command-line builds.
+
 ## [0.5.0] - 2026-04-02 00:50
 
 ### Added

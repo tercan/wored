@@ -11,6 +11,13 @@ A minimal music player for macOS built with SwiftUI.
 - Album art display
 - Metadata reading (title, artist, artwork)
 - Drag and drop playlist reordering
+- Finder drag and drop import for audio files and folders
+- Track context menu actions
+- Rich track information panel with file and audio details
+- MP3/ID3 text and artwork tag editing
+- Folder source rescan support
+- Playlist search, status summary, and keyboard shortcuts
+- Favorites and playback history views
 - Auto-advance to next song
 - Sharp, flat UI design (zero border radius)
 - Settings panel with themes, EQ, and window controls
@@ -29,10 +36,16 @@ A minimal music player for macOS built with SwiftUI.
 ## Usage
 
 - Click the playlist icon to toggle playlist window
+- Press Cmd+L to toggle the playlist window
+- Press Cmd+O to add audio files or folders
+- Press Cmd+, to open settings
+- Press Space to toggle play/pause
 - Double-click a song to play
+- Press Cmd+F in the playlist window to search
+- Use the playlist window tabs to switch between list, favorites, and history views
 - Drag songs to reorder playlist
 - Use playback controls to navigate
 
 ## Version
 
-0.4.1
+0.6.0

@@ -45,7 +45,3 @@ struct InfoLinkRow: View {
         }
     }
 }
-
-#Preview {
-    ContentView()
-}

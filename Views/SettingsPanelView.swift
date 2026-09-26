@@ -101,7 +101,7 @@ struct SettingsPanelView: View {
                 
                 // Footer Info
                 HStack {
-                    Text("v0.5.0 (2026.04.02)")
+                    Text("v0.6.0 (2026.04.28)")
                         .font(.system(size: 10))
                         .foregroundColor(.appTextSecondary)
                     Spacer()
@@ -185,6 +185,11 @@ final class InfoPanelController: NSObject, NSWindowDelegate {
             return
         }
         show(relativeTo: anchor)
+    }
+
+    func toggleNearPlayerWindow() {
+        guard let anchor = WindowManager.shared.playerWindow?.contentView else { return }
+        toggle(relativeTo: anchor)
     }
     
     private func show(relativeTo anchor: NSView) {

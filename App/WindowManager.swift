@@ -17,6 +17,7 @@ class WindowManager: ObservableObject {
     private var playerMainObserver: NSObjectProtocol?
     private var playlistMainObserver: NSObjectProtocol?
     private var playlistResizeObserver: NSObjectProtocol?
+    private var spacebarMonitor: Any?
     private var isForegroundSyncing = false
     private var didAlignPlaylistOnce = false
     private var isSyncingFrame = false
@@ -46,6 +47,52 @@ class WindowManager: ObservableObject {
                 UserDefaults.standard.set(visible, forKey: key)
             }
         }
+        configureSpacebarShortcut()
+    }
+
+    deinit {
+        if let spacebarMonitor {
+            NSEvent.removeMonitor(spacebarMonitor)
+        }
+    }
+
+    private func configureSpacebarShortcut() {
+        guard spacebarMonitor == nil else { return }
+        spacebarMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard self?.shouldHandleSpacebar(event) == true else { return event }
+            AudioPlayerViewModel.shared.togglePlayPause()
+            return nil
+        }
+    }
+
+    private func shouldHandleSpacebar(_ event: NSEvent) -> Bool {
+        guard event.keyCode == 49, !event.isARepeat else { return false }
+
+        let blockedModifiers: NSEvent.ModifierFlags = [.command, .option, .control, .shift]
+        guard event.modifierFlags.intersection(blockedModifiers).isEmpty else { return false }
+
+        guard let keyWindow = NSApp.keyWindow,
+              keyWindow === playerWindow || keyWindow === playlistWindow else { return false }
+
+        return !isTextInputFocused(in: keyWindow)
+    }
+
+    private func isTextInputFocused(in window: NSWindow) -> Bool {
+        guard let responder = window.firstResponder else { return false }
+
+        if responder is NSTextView || responder is NSTextField {
+            return true
+        }
+
+        guard var view = responder as? NSView else { return false }
+        while let superview = view.superview {
+            if superview is NSTextField {
+                return true
+            }
+            view = superview
+        }
+
+        return false
     }
     
     func registerPlayerWindow(_ window: NSWindow) {

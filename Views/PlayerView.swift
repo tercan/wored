@@ -31,10 +31,9 @@ struct PlayerView: View {
                                     .aspectRatio(contentMode: .fill)
                                     .frame(width: 56, height: 56)
                                     .clipped()
-                                    .cornerRadius(4)
                             } else {
                                 ZStack {
-                                    RoundedRectangle(cornerRadius: 4)
+                                    Rectangle()
                                         .fill(Color.appSecondary)
                                     Image(systemName: "music.note")
                                         .font(.system(size: 18))
@@ -245,10 +244,10 @@ struct PlayerView: View {
                                     .foregroundColor(.appTextSecondary)
                                     .padding(4)
                                     .background(Color.appSecondary)
-                                    .cornerRadius(4)
                             }
                             .buttonStyle(.plain)
                             .focusable(false)
+                            .keyboardShortcut("l", modifiers: [.command])
                             .help(L10n.t(.playlist))
                         }
                         .frame(width: actionsWidth, alignment: .trailing)
@@ -261,6 +260,7 @@ struct PlayerView: View {
             WindowManager.shared.playerWindow?.level = newValue ? .floating : .normal
         }
         .background(Color.appBackground)
+        .background(shortcutButtons)
         .frame(width: 300)
         .onAppear {
             guard !didRestorePlaylist else { return }
@@ -295,5 +295,43 @@ struct PlayerView: View {
         let minutes = Int(time) / 60
         let seconds = Int(time) % 60
         return String(format: "%02d:%02d", minutes, seconds)
+    }
+
+    private var shortcutButtons: some View {
+        Group {
+            Button(action: openSongPanel) {
+                EmptyView()
+            }
+            .keyboardShortcut("o", modifiers: [.command])
+
+            Button(action: toggleSettingsPanel) {
+                EmptyView()
+            }
+            .keyboardShortcut(",", modifiers: [.command])
+        }
+        .frame(width: 0, height: 0)
+        .opacity(0)
+        .accessibilityHidden(true)
+    }
+
+    func openSongPanel() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = true
+        panel.allowedContentTypes = [.audio, .folder]
+
+        panel.begin { response in
+            if response == .OK {
+                let urls = panel.urls
+                DispatchQueue.main.async {
+                    viewModel.addSongs(urls: urls)
+                }
+            }
+        }
+    }
+
+    func toggleSettingsPanel() {
+        InfoPanelController.shared.toggleNearPlayerWindow()
     }
 }
