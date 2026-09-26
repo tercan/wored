@@ -18,6 +18,8 @@ class WindowManager: ObservableObject {
     weak var playlistWindow: NSWindow?
     
     private var playerObserver: NSObjectProtocol?
+    private var playerResizeObserver: NSObjectProtocol?
+    private var playerVisibilityObserver: NSObjectProtocol?
     private var playlistObserver: NSObjectProtocol?
     private var playerKeyObserver: NSObjectProtocol?
     private var playlistKeyObserver: NSObjectProtocol?
@@ -26,7 +28,6 @@ class WindowManager: ObservableObject {
     private var playlistResizeObserver: NSObjectProtocol?
     private var keyboardMonitor: Any?
     private var isForegroundSyncing = false
-    private var didAlignPlaylistOnce = false
     private var isSyncingFrame = false
     private var pendingShowPlaylist = false
     private let playlistHeightKey = "wored.playlistHeight"
@@ -38,6 +39,7 @@ class WindowManager: ObservableObject {
     
     private init() {
         pendingShowPlaylist = UserDefaults.standard.bool(forKey: playlistVisibleKey)
+        isPlaylistVisible = pendingShowPlaylist
         appActiveObserver = NotificationCenter.default.addObserver(
             forName: NSApplication.didBecomeActiveNotification,
             object: nil,
@@ -143,6 +145,7 @@ class WindowManager: ObservableObject {
     }
     
     func registerPlayerWindow(_ window: NSWindow) {
+        guard playerWindow !== window else { return }
         playerWindow = window
         window.identifier = .woredPlayerWindow
         
@@ -158,6 +161,24 @@ class WindowManager: ObservableObject {
             queue: .main
         ) { [weak self] _ in
             self?.syncPlaylistFrameToPlayer()
+            self?.showPendingPlaylistIfReady()
+        }
+
+        playerResizeObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.didResizeNotification,
+            object: window,
+            queue: .main
+        ) { [weak self] _ in
+            self?.syncPlaylistFrameToPlayer()
+            self?.showPendingPlaylistIfReady()
+        }
+
+        playerVisibilityObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.didChangeOcclusionStateNotification,
+            object: window,
+            queue: .main
+        ) { [weak self] _ in
+            self?.showPendingPlaylistIfReady()
         }
         
         playerKeyObserver = NotificationCenter.default.addObserver(
@@ -165,6 +186,7 @@ class WindowManager: ObservableObject {
             object: window,
             queue: .main
         ) { [weak self] _ in
+            self?.showPendingPlaylistIfReady()
             self?.syncForeground(from: window)
         }
         
@@ -173,14 +195,15 @@ class WindowManager: ObservableObject {
             object: window,
             queue: .main
         ) { [weak self] _ in
+            self?.showPendingPlaylistIfReady()
             self?.syncForeground(from: window)
         }
+        showPendingPlaylistIfReady()
     }
     
     func registerPlaylistWindow(_ window: NSWindow) {
         playlistWindow = window
         window.identifier = .woredPlaylistWindow
-        isPlaylistVisible = window.isVisible
         
         // Observe playlist window movement
         playlistObserver = NotificationCenter.default.addObserver(
@@ -221,6 +244,7 @@ class WindowManager: ObservableObject {
             queue: .main
         ) { [weak self] _ in
             self?.isPlaylistVisible = false
+            self?.pendingShowPlaylist = false
             self?.detachPlaylistFromPlayer()
             self?.playlistWindow = nil
             guard self?.isAppTerminating != true else { return }
@@ -231,12 +255,8 @@ class WindowManager: ObservableObject {
 
         if pendingShowPlaylist {
             showPlaylist()
-            pendingShowPlaylist = false
-        } else if !didAlignPlaylistOnce {
-            alignPlaylistBelowPlayer()
-            didAlignPlaylistOnce = true
+        } else {
             window.orderOut(nil)
-            isPlaylistVisible = false
         }
     }
     
@@ -332,6 +352,7 @@ class WindowManager: ObservableObject {
 
     private func bringWindowsToFrontIfNeeded() {
         guard !arePlayerWindowsHidden else { return }
+        showPendingPlaylistIfReady()
         guard let player = playerWindow else { return }
         bringToFront(player)
         if let playlist = playlistWindow, playlist.isVisible {
@@ -358,44 +379,44 @@ class WindowManager: ObservableObject {
     }
 
     func showPlaylist() {
-        guard let playlist = playlistWindow else { return }
-        alignPlaylistBelowPlayer()
-        attachPlaylistToPlayer()
-        playlist.orderFront(nil)
+        pendingShowPlaylist = true
         isPlaylistVisible = true
         UserDefaults.standard.set(true, forKey: playlistVisibleKey)
+        guard isPlayerReadyForPlaylist else { return }
+        guard let playlist = playlistWindow else {
+            PlaylistWindowController.shared.open()
+            return
+        }
+        alignPlaylistBelowPlayer()
+        attachPlaylistToPlayer()
+        // Focus notifications can re-enter presentation; finish the request first.
+        pendingShowPlaylist = false
+        playlist.makeKeyAndOrderFront(nil)
+    }
+
+    private var isPlayerReadyForPlaylist: Bool {
+        guard let player = playerWindow else { return false }
+        return player.isVisible && !player.isMiniaturized && !arePlayerWindowsHidden
+    }
+
+    private func showPendingPlaylistIfReady() {
+        guard pendingShowPlaylist, isPlayerReadyForPlaylist else { return }
+        showPlaylist()
     }
     
     func hidePlaylist() {
-        guard let playlist = playlistWindow else { return }
+        pendingShowPlaylist = false
         detachPlaylistFromPlayer()
-        playlist.orderOut(nil)
+        playlistWindow?.orderOut(nil)
         isPlaylistVisible = false
         UserDefaults.standard.set(false, forKey: playlistVisibleKey)
     }
     
     func togglePlaylist() {
-        if let playlist = playlistWindow {
-            if playlist.isVisible {
-                hidePlaylist()
-            } else {
-                showPlaylist()
-            }
+        if pendingShowPlaylist || playlistWindow?.isVisible == true {
+            hidePlaylist()
         } else {
-            pendingShowPlaylist = true
-            PlaylistWindowController.shared.open()
-        }
-    }
-
-    func restorePlaylistIfNeeded() {
-        guard UserDefaults.standard.bool(forKey: playlistVisibleKey) else { return }
-        if let playlist = playlistWindow {
-            if !playlist.isVisible {
-                showPlaylist()
-            }
-        } else {
-            pendingShowPlaylist = true
-            PlaylistWindowController.shared.open()
+            showPlaylist()
         }
     }
     

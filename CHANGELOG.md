@@ -2,6 +2,13 @@
 
 All notable changes to Wored will be documented in this file.
 
+## [0.7.1] - 2026-09-26 22:26
+
+### Fixed
+
+- Fixed the playlist opening separately from the player at startup; restored its docked position, saved height, and visibility preference.
+- Restored Cmd+L and Cmd+Comma shortcuts across player and playlist windows.
+
 ## [0.7.0] - 2026-09-26 20:20
 
 ### Added

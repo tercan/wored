@@ -145,7 +145,6 @@ final class PlaylistWindowController {
         window.contentView = hosting
         self.window = window
         WindowManager.shared.registerPlaylistWindow(window)
-        window.makeKeyAndOrderFront(nil)
     }
 }
 

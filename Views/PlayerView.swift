@@ -9,7 +9,6 @@ struct PlayerView: View {
     @Environment(\.openWindow) private var openWindow
     @State private var showInfo = false
     @State private var wasPlayingBeforeSeek = false
-    @State private var didRestorePlaylist = false
     
     private var repeatIcon: String {
         viewModel.repeatMode == .one ? "repeat.1" : "repeat"
@@ -277,9 +276,6 @@ struct PlayerView: View {
         .frame(width: 300)
         .onAppear {
             MenuBarController.shared.openWindow = { id in openWindow(id: id) }
-            guard !didRestorePlaylist else { return }
-            didRestorePlaylist = true
-            windowManager.restorePlaylistIfNeeded()
         }
         .onMoveCommand { direction in
             switch direction {

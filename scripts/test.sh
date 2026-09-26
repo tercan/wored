@@ -13,3 +13,7 @@ for test in SingleInstanceLock PanelFramePersistence; do
         "Services/$test.swift" "Tests/${test}Tests.swift" -o "$work/$test"
     "$work/$test"
 done
+
+xcrun swiftc -sdk "$sdk" -parse-as-library -default-isolation MainActor -module-cache-path "$work/modules" \
+    App/WindowManager.swift Tests/WindowDockingTests.swift -o "$work/WindowDocking"
+"$work/WindowDocking"

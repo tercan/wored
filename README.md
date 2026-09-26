@@ -45,11 +45,11 @@ To run the regression tests and create a local Release package:
 
 ```sh
 bash scripts/test.sh
-bash scripts/package-release.sh 0.7.0
+bash scripts/package-release.sh 0.7.1
 ```
 
-The application is written to dist/Wored.app; versioned packages are written to dist/releases/0.7.0.
+The application is written to dist/Wored.app; versioned packages are written to dist/releases/0.7.1.
 
 ## Version
 
-0.7.0
+0.7.1
