@@ -260,7 +260,6 @@ struct PlayerView: View {
                             }
                             .buttonStyle(.plain)
                             .focusable(false)
-                            .keyboardShortcut("l", modifiers: [.command])
                             .help(L10n.t(.playlist))
                         }
                     .frame(height: 24)
@@ -319,10 +318,6 @@ struct PlayerView: View {
             }
             .keyboardShortcut("o", modifiers: [.command])
 
-            Button(action: toggleSettingsPanel) {
-                EmptyView()
-            }
-            .keyboardShortcut(",", modifiers: [.command])
         }
         .frame(width: 0, height: 0)
         .opacity(0)
@@ -346,7 +341,4 @@ struct PlayerView: View {
         }
     }
 
-    func toggleSettingsPanel() {
-        InfoPanelController.shared.toggleNearPlayerWindow()
-    }
 }

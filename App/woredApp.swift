@@ -34,6 +34,20 @@ struct woredApp: App {
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
         .defaultPosition(.center)
+        .commands {
+            CommandGroup(replacing: .appSettings) {
+                Button(L10n.t(.settings)) {
+                    InfoPanelController.shared.toggleNearPlayerWindow()
+                }
+                .keyboardShortcut(",", modifiers: [.command])
+            }
+            CommandGroup(after: .windowArrangement) {
+                Button(L10n.t(.playlist)) {
+                    WindowManager.shared.togglePlaylist()
+                }
+                .keyboardShortcut("l", modifiers: [.command])
+            }
+        }
         
     }
 }

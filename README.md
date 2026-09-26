@@ -1,73 +1,55 @@
 # Wored
 
-SwiftUI ve AppKit ile geliştirilmiş, macOS için sade ve kompakt bir müzikçalar.
+A compact, minimal music player for macOS, built with SwiftUI and AppKit.
 
-![Wored ekran görüntüsü](assets/wored-screen.png)
+![Wored screenshot](assets/wored-screen.png)
 
-## İndirme ve Kurulum
+## Download and Installation
 
-[Son sürümü GitHub Releases üzerinden indirin](https://github.com/tercan/wored/releases/latest).
+[Download the latest release](https://github.com/tercan/wored/releases/latest).
 
-- **DMG:** Dosyayı açın ve Wored uygulamasını Applications bağlantısına sürükleyin.
-- **ZIP:** Arşivi açın ve Wored.app dosyasını Uygulamalar klasörüne taşıyın.
-- Hazır paketler Apple Silicon (arm64) ve macOS 26.2 veya üzeri içindir.
-- Paketler ad-hoc imzalıdır; Developer ID imzası ve Apple notarization içermez. macOS ilk açılışta güvenlik uyarısı gösterebilir.
-- İndirme bütünlüğünü sürümdeki SHA256SUMS.txt dosyasıyla doğrulayabilirsiniz.
+- **DMG:** Open the disk image and drag Wored to the Applications shortcut.
+- **ZIP:** Extract the archive and move Wored.app to your Applications folder.
+- Prebuilt applications require **Apple Silicon (arm64)** and **macOS 26.2 or later**.
+- Packages are ad-hoc signed, not Developer ID signed or notarized. macOS may display a security warning on first launch.
+- Use the included SHA256SUMS.txt file to verify download integrity.
 
-## Özellikler
+## Features
 
-- Keskin köşeli, düz renkli ve kompakt arayüz
-- Player'a bağlı, yüksekliği ayarlanabilir çalma listesi
-- Dosya/klasör sürükleyerek ekleme, liste sıralama ve klasörleri yeniden tarama
-- Birden fazla çalma listesi, arama, Favoriler ve Geçmiş
-- Parça bilgisi; MP3/ID3 metin ve kapak düzenleme
-- Menü çubuğundan kontrol ve pencereler gizliyken oynatma
-- Açık/koyu/sistem teması, EQ, crossfade ve klavye kısayolları
-- Yardımcı panel konumlarını ve etiket paneli yüksekliğini hatırlama
-- Aynı anda tek uygulama kopyası çalıştırma
+- Compact interface with sharp corners and flat colors
+- Docked playlist with adjustable height
+- File and folder drag-and-drop, track reordering, and folder rescanning
+- Multiple playlists, search, favorites, and playback history
+- Detailed track information and MP3/ID3 text and artwork editing
+- Menu bar controls and playback while the player window is hidden
+- Light, dark, and system themes, EQ presets, and crossfade
+- Saved panel positions and adjustable track-info panel height
+- Single-instance operation
 
-## Kullanım
+## Keyboard and Mouse Controls
 
-- Space: oynat/duraklat; metin alanlarında normal boşluk girişi
-- Cmd+L: çalma listesini göster/gizle
-- Cmd+O: dosya veya klasör ekle
-- Cmd+F: çalma listesinde arama
-- Cmd+,: ayarlar
-- Cmd+W veya Ctrl+W: odaktaki ayarlar/etiket panelini kapat
-- Parçaya çift tıklama: oynat; kalp simgesi: favori durumunu değiştir
-- Player üzerindeki X: pencereleri gizle; Cmd+Q: uygulamadan çık
+- Space: play/pause; inserts a normal space in text fields
+- Cmd+L: show/hide the playlist
+- Cmd+O: add files or folders
+- Cmd+F: search the playlist
+- Cmd+Comma: open/close settings
+- Cmd+W or Ctrl+W: close the focused settings or track-info panel
+- Double-click a track to play it; click its heart to toggle favorite status
+- Click the player's X button to hide its windows; press Cmd+Q to quit
 
-## Kaynaktan Derleme
+## Build from Source
 
-Xcode 26.4 veya üzeri gerekir. wored.xcodeproj dosyasını açıp Wored şemasını derleyin.
+Use Xcode 26.4 or later. Open wored.xcodeproj and build the Wored scheme.
+
+To run the regression tests and create a local Release package:
 
 ```sh
 bash scripts/test.sh
 bash scripts/package-release.sh 0.7.0
 ```
 
-Güncel uygulama dist/Wored.app, sürüm paketleri dist/releases/0.7.0 altında oluşturulur.
+The application is written to dist/Wored.app; versioned packages are written to dist/releases/0.7.0.
 
-## Varsayılan Yayın Politikası
-
-Her sürüm güncellemesinde uygulamanın MARKETING_VERSION/CURRENT_PROJECT_VERSION değerleri, README sürümü ve CHANGELOG birlikte güncellenir. Yalnızca commit veya etiket oluşturmak yayın için yeterli değildir: GitHub Releases kaydı, indirilebilir ZIP/DMG paketleri ve SHA-256 özeti de yayımlanmalıdır.
-
-1. Sürüm bilgilerini güncelleyin; testleri ve Release paketlemesini çalıştırın.
-2. Kaynak değişikliklerini commit edin.
-3. Aynı commit üzerinde vX.Y.Z biçiminde açıklamalı etiket oluşturup dal ve etiketi gönderin.
-4. GitHub Actions release akışı testleri/derlemeyi yeniden çalıştırır; Release kaydını ve indirme dosyalarını yayımlar.
-5. Akışın başarılı olduğunu, dosyaların indirilebildiğini ve yerel dist/Wored.app çıktısının güncel olduğunu doğrulayın.
-
-Yerel paketleri elle yayımlamak veya aynı etiketin dosyalarını yenilemek için:
-
-```sh
-GH_REPO=tercan/wored bash scripts/publish-release.sh 0.7.0
-```
-
-Bu komut mevcut etiketi ve paket sürümünü doğrular; paketleme için önce package-release.sh çalıştırılmalıdır. Etiketler başka commit'lere taşınmaz. GitHub workflow_dispatch ile mevcut bir etiketi yeniden paketleyip yayımlamak da mümkündür.
-
-Yayın akışı etiketli uygulama kaynağını ve çalışmayı başlatan commit'teki yayın araçlarını ayrı checkout'larda tutar. Böylece paketleme aracı düzeltmeleri, eski sürüm etiketlerini veya uygulama kaynağını değiştirmeden kullanılabilir.
-
-## Sürüm
+## Version
 
 0.7.0

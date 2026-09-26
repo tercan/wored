@@ -27,7 +27,7 @@ awk -v version="$version" '
 ' CHANGELOG.md > "$notes"
 [[ -s "$notes" ]] || { printf 'Missing changelog section\n' >&2; exit 1; }
 minimum_macos=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["minimumMacOS"])' "$output/BUILD_INFO.json")
-printf '\n## İndirme ve Kurulum\n\nApple Silicon (arm64), macOS %s veya üzeri. DMG dosyasını açıp Wored uygulamasını Applications bağlantısına sürükleyin veya ZIP içindeki Wored.app dosyasını Uygulamalar klasörüne taşıyın.\n\nPaketler ad-hoc imzalıdır; Developer ID imzası ve Apple notarization içermez. macOS ilk açılışta güvenlik uyarısı gösterebilir. SHA256SUMS.txt bütünlük doğrulaması, BUILD_INFO.json kaynak commit bilgisi içerir.\n' "$minimum_macos" >> "$notes"
+printf '\n## Download and Installation\n\nRequires Apple Silicon (arm64) and macOS %s or later. Open the DMG and drag Wored to the Applications shortcut, or extract the ZIP and move Wored.app to your Applications folder.\n\nPackages are ad-hoc signed, not Developer ID signed or notarized. macOS may display a security warning on first launch. Use SHA256SUMS.txt to verify download integrity; BUILD_INFO.json identifies the source commit.\n' "$minimum_macos" >> "$notes"
 
 if ! gh release view "$tag" --repo "$repo" >/dev/null 2>&1; then
     gh release create "$tag" --repo "$repo" --verify-tag --draft --title "Wored $version" --notes-file "$notes"

@@ -10,16 +10,12 @@ All notable changes to Wored will be documented in this file.
 - Added single-instance protection before loading playback and persisted data.
 - Added clickable outline/filled favorite controls in every playlist view.
 - Added persistent settings and track-info panel positions, resizable track-info height, and Cmd+W/Ctrl+W panel shortcuts.
-- Added process-lock and panel-geometry regression tests.
-- Added automated tagged GitHub Releases with installable DMG, application ZIP, and SHA-256 checksums.
 
 ### Changed
 
 - Reorganized playlist controls into a compact footer with a top playlist selector and on-demand bottom search.
 - Changed the player close button to hide windows while music continues in the background.
 - Made player controls clearer in light/dark themes with stable sizes and full hit areas.
-- Moved playlist window ownership to a keyable AppKit window for reliable keyboard input.
-- Read the displayed app version from bundle metadata and documented the release publication policy.
 
 ### Fixed
 
@@ -45,8 +41,8 @@ All notable changes to Wored will be documented in this file.
 - Added keyboard shortcuts for playlist search, selected-track playback, playlist creation, queue clearing, and playlist window toggling.
 - Added Spacebar play/pause handling for player and playlist windows.
 - Added a radiusless rich track info panel with artwork, tag metadata, file details, and technical audio properties.
-- Added first-phase MP3/ID3 text tag editing for title, artist, album, genre, year, track number, and disc number.
-- Added second-phase MP3/ID3 artwork editing with choose, remove, and reset controls in the track info panel.
+- Added MP3/ID3 text tag editing for title, artist, album, genre, year, track number, and disc number.
+- Added MP3/ID3 artwork editing with choose, remove, and reset controls in the track info panel.
 
 ### Changed
 
@@ -57,7 +53,7 @@ All notable changes to Wored will be documented in this file.
 - Extended saved song metadata with track and disc number hints.
 - Preserved existing non-edited ID3 frames while rewriting text and artwork frames.
 - Switched edited ID3 text frames to BOM-marked UTF-16 for broader non-latin character compatibility across MP3 players.
-- Moved the track info and tag editor panel out of the playlist overlay into its own keyable AppKit panel.
+- Opened track information and tag editing in a separate panel.
 - Disabled drag reordering while playlist search is active to keep filtered order and queue order predictable.
 
 ### Fixed
@@ -66,9 +62,8 @@ All notable changes to Wored will be documented in this file.
 - Refreshed playlist metadata when audio file tags change, including ID3/MP4 tag parsing, app-activation checks, and manual rescan for playlists without folder sources.
 - Reset stopped player node volume to prevent stale audio from leaking into later transitions.
 - Kept the currently playing track alive when switching playlist tabs.
-- Replaced tag editor text fields with native AppKit text fields so editing works reliably inside the playlist overlay.
+- Improved text entry in the tag editor.
 - Prevented the launch-at-startup preference from calling `SMAppService` while stored preferences are loading.
-- Removed the legacy SwiftUI preview block that prevented sandboxed command-line builds.
 
 ## [0.5.0] - 2026-04-02 00:50
 

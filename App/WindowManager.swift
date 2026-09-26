@@ -24,7 +24,7 @@ class WindowManager: ObservableObject {
     private var playerMainObserver: NSObjectProtocol?
     private var playlistMainObserver: NSObjectProtocol?
     private var playlistResizeObserver: NSObjectProtocol?
-    private var spacebarMonitor: Any?
+    private var keyboardMonitor: Any?
     private var isForegroundSyncing = false
     private var didAlignPlaylistOnce = false
     private var isSyncingFrame = false
@@ -55,22 +55,45 @@ class WindowManager: ObservableObject {
                 UserDefaults.standard.set(visible, forKey: key)
             }
         }
-        configureSpacebarShortcut()
+        configureKeyboardShortcuts()
     }
 
     deinit {
-        if let spacebarMonitor {
-            NSEvent.removeMonitor(spacebarMonitor)
+        if let keyboardMonitor {
+            NSEvent.removeMonitor(keyboardMonitor)
         }
     }
 
-    private func configureSpacebarShortcut() {
-        guard spacebarMonitor == nil else { return }
-        spacebarMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            guard self?.shouldHandleSpacebar(event) == true else { return event }
+    private func configureKeyboardShortcuts() {
+        guard keyboardMonitor == nil else { return }
+        keyboardMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self else { return event }
+            if self.handleWindowShortcut(event) { return nil }
+            guard self.shouldHandleSpacebar(event) else { return event }
             AudioPlayerViewModel.shared.togglePlayPause()
             return nil
         }
+    }
+
+    private func handleWindowShortcut(_ event: NSEvent) -> Bool {
+        let modifiers = event.modifierFlags.intersection([.command, .control, .option, .shift])
+        guard modifiers == .command, !event.isARepeat,
+              NSApp.isActive, NSApp.modalWindow == nil else { return false }
+        if let window = NSApp.keyWindow {
+            guard window.attachedSheet == nil,
+                  isPlaybackShortcutWindow(window) || window.identifier?.rawValue == "wored.menuBarPanel" else { return false }
+        } else {
+            guard playerWindow?.isVisible == true || playlistWindow?.isVisible == true else { return false }
+        }
+        switch event.charactersIgnoringModifiers?.lowercased() {
+        case "l":
+            togglePlaylist()
+        case ",":
+            InfoPanelController.shared.toggleNearPlayerWindow()
+        default:
+            return false
+        }
+        return true
     }
 
     private func shouldHandleSpacebar(_ event: NSEvent) -> Bool {
